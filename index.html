@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Sistem Penjadwalan Sekolah - Advanced</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<!-- CDN html2pdf -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+
+<style>
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  color: #1a202c;
+}
+header {
+  background: rgba(26, 32, 44, 0.95);
+  backdrop-filter: blur(10px);
+  color: #f7fafc;
+  padding: 20px 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+header p {
+  margin: 6px 0 0;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+main {
+  max-width: 1200px;
+  margin: 20px auto 40px;
+  padding: 0 16px;
+}
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+.card:hover {
+  transform: translateY(-2px);
+}
+.card h2 {
+  margin: 0 0 16px 0;
+  font-size: 1.3rem;
+  color: #2d3748;
+  border-bottom: 3px solid #667eea;
+  padding-bottom: 8px;
+  display: inline-block;
+}
+.grid-2 {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+.grid-3 {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+label {
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+  display: block;
+  font-weight: 600;
+  color: #4a5568;
+}
+input, select, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f7fafc;
+  transition: all 0.3s;
+  font-size: 0.9rem;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+.btn {
+  padding: 10px 20px;
+  margin-top: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border: none;
+  font-weight: 600;
+  transition: all 0.3s;
+  display: inline-block;
+}
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.btn-primary { background: #667eea; color: #fff; }
+.btn-primary:hover { background: #5568d3; }
+.btn-success { background: #48bb78; color: #fff; }
+.btn-success:hover { background: #38a169; }
+.btn-warning { background: #ed8936; color: #fff; }
+.btn-warning:hover { background: #dd6b20; }
+.btn-danger { background: #f56565; color: #fff; }
+.btn-danger:hover { background: #e53e3e; }
+.btn-secondary { background: #cbd5e0; color: #2d3748; }
+.btn-secondary:hover { background: #a0aec0; }
+.btn-row { 
+  display: flex; 
+  gap: 10px; 
+  flex-wrap: wrap; 
+  margin-top: 12px; 
+}
+table {
+  width: 100%; 
+  margin-top: 12px; 
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+th, td {
+  border: 1px solid #e2e8f0;
+  padding: 10px;
+  text-align: left;
+}
+th { 
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+tbody tr:hover {
+  background: #f7fafc;
+}
+.alert { 
+  margin-top: 12px; 
+  padding: 12px 16px; 
+  border-radius: 8px; 
+  font-size: 0.85rem;
+  border-left: 4px solid;
+}
+.alert-error { 
+  background: #fed7d7; 
+  color: #c53030;
+  border-color: #f56565;
+}
+.alert-success { 
+  background: #c6f6d5; 
+  color: #276749;
+  border-color: #48bb78;
+}
+.alert-info { 
+  background: #bee3f8; 
+  color: #2c5282;
+  border-color: #4299e1;
+}
+.watermark-main {
+  position: fixed; 
+  right: 12px; 
+  bottom: 8px;
+  font-size: 0.75rem; 
+  opacity: 0.4;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.logo-preview {
+  max-width: 200px;
+  max-height: 100px;
+  margin-top: 10px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px;
+  display: none;
+}
+.logo-preview.show {
+  display: block;
+}
+.tab-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #e2e8f0;
+}
+.tab {
+  padding: 10px 20px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  font-weight: 600;
+  color: #718096;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+}
+.tab:hover {
+  color: #667eea;
+}
+.tab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+.tab-content {
+  display: none;
+}
+.tab-content.active {
+  display: block;
+}
+.btn-icon {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  margin: 0 2px;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+}
+.stat-card h3 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+.stat-card p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1 id="headerTitle">Sistem Penjadwalan Sekolah</h1>
+  <p id="headerSubtitle">Manajemen Jadwal Mengajar & Pengawas Ujian Terintegrasi</p>
+</header>
+
+<main>
+<!-- STATISTIK -->
+<section class="card">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <h3 id="statGuru">0</h3>
+      <p>Total Guru</p>
+    </div>
+    <div class="stat-card" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);">
+      <h3 id="statKelas">0</h3>
+      <p>Total Kelas</p>
+    </div>
+    <div class="stat-card" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);">
+      <h3 id="statMengajar">0</h3>
+      <p>Jadwal Mengajar</p>
+    </div>
+    <div class="stat-card" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%);">
+      <h3 id="statPengawas">0</h3>
+      <p>Jadwal Pengawas</p>
+    </div>
+  </div>
+</section>
+
+<!-- MASTER DATA -->
+<section class="card">
+  <h2>📋 Master Data Guru & Kelas</h2>
+
+  <div class="grid-2">
+    <div>
+      <label>👨‍🏫 Nama Guru</label>
+      <input type="text" id="guruNama" placeholder="Contoh: Dwi Denia Candra">
+      <label style="margin-top:10px;">🔖 Kode Guru</label>
+      <input type="text" id="guruKode" placeholder="Contoh: DDC" style="text-transform: uppercase;">
+      <label style="margin-top:10px;">📧 Email (opsional)</label>
+      <input type="email" id="guruEmail" placeholder="Contoh: dwi@sekolah.com">
+      <div class="btn-row">
+        <button type="button" class="btn btn-primary" onclick="tambahGuru()">➕ Simpan Guru</button>
+        <button type="button" class="btn btn-secondary" onclick="clearFormGuru()">🔄 Reset</button>
+      </div>
+      <div id="alert-master"></div>
+    </div>
+
+    <div>
+      <label>🏫 Nama Kelas</label>
+      <input type="text" id="kelasNama" placeholder="Contoh: VII A">
+      <label style="margin-top:10px;">👥 Jumlah Siswa (opsional)</label>
+      <input type="number" id="kelasJumlah" placeholder="Contoh: 32" min="1">
+      <div class="btn-row">
+        <button type="button" class="btn btn-success" onclick="tambahKelas()">➕ Simpan Kelas</button>
+        <button type="button" class="btn btn-secondary" onclick="clearFormKelas()">🔄 Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabel Guru & Kelas -->
+  <div class="grid-2" style="margin-top: 20px;">
+    <div>
+      <h3 style="font-size: 1rem; margin-bottom: 8px;">Daftar Guru</h3>
+      <table id="tabelGuru">
+        <thead>
+          <tr><th>No</th><th>Nama</th><th>Kode</th><th>Email</th><th>Aksi</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div>
+      <h3 style="font-size: 1rem; margin-bottom: 8px;">Daftar Kelas</h3>
+      <table id="tabelKelas">
+        <thead>
+          <tr><th>No</th><th>Nama Kelas</th><th>Siswa</th><th>Aksi</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- JADWAL MENGAJAR -->
+<section class="card">
+  <h2>📚 Jadwal Mengajar Guru</h2>
+  
+  <div class="grid-3">
+    <div>
+      <label>👨‍🏫 Pilih Guru</label>
+      <select id="jmGuru"></select>
+    </div>
+    <div>
+      <label>🏫 Pilih Kelas</label>
+      <select id="jmKelas"></select>
+    </div>
+    <div>
+      <label>📖 Mata Pelajaran</label>
+      <input type="text" id="jmMapel" placeholder="Contoh: Matematika">
+    </div>
+  </div>
+
+  <div class="grid-3" style="margin-top: 10px;">
+    <div>
+      <label>📅 Hari</label>
+      <select id="jmHari">
+        <option value="">-- Pilih Hari --</option>
+        <option>Senin</option><option>Selasa</option>
+        <option>Rabu</option><option>Kamis</option>
+        <option>Jumat</option><option>Sabtu</option>
+      </select>
+    </div>
+    <div>
+      <label>🕐 Jam Mulai</label>
+      <input type="time" id="jmMulai">
+    </div>
+    <div>
+      <label>🕑 Jam Selesai</label>
+      <input type="time" id="jmSelesai">
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button type="button" class="btn btn-primary" onclick="tambahJadwalMengajar()">➕ Tambah Jadwal</button>
+    <button type="button" class="btn btn-secondary" onclick="clearFormMengajar()">🔄 Reset Form</button>
+  </div>
+  <div id="alert-mengajar"></div>
+
+  <h3 style="font-size: 1rem; margin-top: 20px; margin-bottom: 8px;">Daftar Jadwal Mengajar</h3>
+  <table id="tabelJadwalMengajar">
+    <thead>
+      <tr><th>No</th><th>Guru</th><th>Kelas</th><th>Mapel</th><th>Hari</th><th>Jam</th><th>Aksi</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<!-- JADWAL PENGAWAS -->
+<section class="card">
+  <h2>👁️ Jadwal Pengawas Ruang Ujian</h2>
+  
+  <div class="grid-3">
+    <div>
+      <label>👨‍🏫 Pilih Guru</label>
+      <select id="jpGuru"></select>
+    </div>
+    <div>
+      <label>🚪 Ruang Ujian</label>
+      <input type="text" id="jpRuang" placeholder="Contoh: Ruang 01">
+    </div>
+    <div>
+      <label>📝 Jenis Ujian</label>
+      <input type="text" id="jpJenis" placeholder="Contoh: UTS, UAS, PAS">
+    </div>
+  </div>
+
+  <div class="grid-3" style="margin-top: 10px;">
+    <div>
+      <label>📅 Hari</label>
+      <select id="jpHari">
+        <option value="">-- Pilih Hari --</option>
+        <option>Senin</option><option>Selasa</option>
+        <option>Rabu</option><option>Kamis</option>
+        <option>Jumat</option><option>Sabtu</option>
+      </select>
+    </div>
+    <div>
+      <label>🕐 Jam Mulai</label>
+      <input type="time" id="jpMulai">
+    </div>
+    <div>
+      <label>🕑 Jam Selesai</label>
+      <input type="time" id="jpSelesai">
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button type="button" class="btn btn-primary" onclick="tambahJadwalPengawas()">➕ Tambah Jadwal</button>
+    <button type="button" class="btn btn-secondary" onclick="clearFormPengawas()">🔄 Reset Form</button>
+  </div>
+  <div id="alert-pengawas"></div>
+
+  <h3 style="font-size: 1rem; margin-top: 20px; margin-bottom: 8px;">Daftar Jadwal Pengawas</h3>
+  <table id="tabelJadwalPengawas">
+    <thead>
+      <tr><th>No</th><th>Guru</th><th>Ruang</th><th>Jenis Ujian</th><th>Hari</th><th>Jam</th><th>Aksi</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
+
+<!-- CEK BENTROK & LAPORAN -->
+<section class="card">
+  <h2>⚙️ Validasi & Laporan</h2>
+
+  <div class="btn-row">
+    <button type="button" class="btn btn-warning" onclick="cekBentrok()">⚠️ Cek Bentrok Jadwal</button>
+    <button type="button" class="btn btn-info" onclick="lihatMatriksJadwal()">📊 Lihat Matriks Jadwal</button>
+  </div>
+  <div id="alert-bentrok"></div>
+
+  <h3 style="margin-top: 24px; font-size: 1.1rem;">📄 Pengaturan Laporan PDF</h3>
+  
+  <div class="grid-2">
+    <div>
+      <label>🏢 Nama Instansi</label>
+      <input type="text" id="pdfInstansi" value="SMP NEGERI 1 SURABAYA" oninput="updatePreview()">
+      
+      <label style="margin-top:10px;">📌 Judul Laporan</label>
+      <input type="text" id="pdfTitle" value="JADWAL KEGIATAN BELAJAR MENGAJAR" oninput="updatePreview()">
+      
+      <label style="margin-top:10px;">📅 Tahun Pelajaran / Periode</label>
+      <input type="text" id="pdfSubtitle" value="Tahun Pelajaran 2024/2025 - Semester Genap" oninput="updatePreview()">
+    </div>
+    
+    <div>
+      <label>🖼️ Logo Instansi (PNG/JPG, maks 500KB)</label>
+      <input type="file" id="pdfLogo" accept="image/png,image/jpeg" onchange="handleLogoUpload(this)">
+      <img id="logoPreview" class="logo-preview" alt="Preview Logo">
+      <button type="button" class="btn btn-secondary btn-icon" onclick="removeLogo()" style="margin-top: 8px; display: none;" id="btnRemoveLogo">🗑️ Hapus Logo</button>
+      
+      <div class="alert alert-info" style="margin-top: 10px;">
+        💡 Tips: Upload logo dengan latar belakang transparan untuk hasil terbaik.
+      </div>
+    </div>
+  </div>
+
+  <div class="btn-row" style="margin-top: 20px;">
+    <button type="button" class="btn btn-primary" onclick="downloadPDF('mengajar')">📥 Download Jadwal Mengajar (PDF)</button>
+    <button type="button" class="btn btn-success" onclick="downloadPDF('pengawas')">📥 Download Jadwal Pengawas (PDF)</button>
+    <button type="button" class="btn btn-warning" onclick="downloadPDF('lengkap')">📥 Download Laporan Lengkap (PDF)</button>
+  </div>
+
+  <!-- Preview Area -->
+  <div id="pdfPreviewArea" style="margin-top: 24px; padding: 20px; background: #f7fafc; border-radius: 8px; display: none;">
+    <h4 style="margin-top: 0;">👁️ Preview Laporan</h4>
+    <div id="pdfArea"></div>
+  </div>
+</section>
+
+</main>
+
+<div class="watermark-main">
+  Created & Developed by : D.D Candra © 2025
+</div>
+
+<script>
+// ====== GLOBAL DATA ======
+var guruList = [];
+var kelasList = [];
+var jadwalMengajar = [];
+var jadwalPengawas = [];
+var logoData = null;
+
+// ====== STORAGE ======
+function saveToStorage() {
+  try {
+    localStorage.setItem("guruList", JSON.stringify(guruList));
+    localStorage.setItem("kelasList", JSON.stringify(kelasList));
+    localStorage.setItem("jadwalMengajar", JSON.stringify(jadwalMengajar));
+    localStorage.setItem("jadwalPengawas", JSON.stringify(jadwalPengawas));
+    if (logoData) {
+      localStorage.setItem("logoData", logoData);
+    }
+    updateStats();
+  } catch (e) {
+    console.error("Error saving to storage:", e);
+  }
+}
+
+function loadFromStorage() {
+  try {
+    var g = localStorage.getItem("guruList");
+    var k = localStorage.getItem("kelasList");
+    var jm = localStorage.getItem("jadwalMengajar");
+    var jp = localStorage.getItem("jadwalPengawas");
+    var logo = localStorage.getItem("logoData");
+    
+    if (g) guruList = JSON.parse(g);
+    if (k) kelasList = JSON.parse(k);
+    if (jm) jadwalMengajar = JSON.parse(jm);
+    if (jp) jadwalPengawas = JSON.parse(jp);
+    if (logo) {
+      logoData = logo;
+      var preview = document.getElementById("logoPreview");
+      if (preview) {
+        preview.src = logoData;
+        preview.classList.add("show");
+        document.getElementById("btnRemoveLogo").style.display = "inline-block";
+      }
+    }
+    updateStats();
+  } catch (e) {
+    console.error("Error loading from storage:", e);
+  }
+}
+
+function updateStats() {
+  document.getElementById("statGuru").textContent = guruList.length;
+  document.getElementById("statKelas").textContent = kelasList.length;
+  document.getElementById("statMengajar").textContent = jadwalMengajar.length;
+  document.getElementById("statPengawas").textContent = jadwalPengawas.length;
+}
+
+// ====== HELPER FUNCTIONS ======
+function showAlert(elementId, message, type) {
+  var el = document.getElementById(elementId);
+  if (!el) return;
+  
+  if (!message) {
+    el.innerHTML = "";
+    return;
+  }
+  
+  var className = "alert";
+  if (type === "error") className += " alert-error";
+  else if (type === "success") className += " alert-success";
+  else if (type === "info") className += " alert-info";
+  
+  el.innerHTML = '<div class="' + className + '">' + message + '</div>';
+  
+  // Auto-hide after 5 seconds for success messages
+  if (type === "success") {
+    setTimeout(function() {
+      el.innerHTML = "";
+    }, 5000);
+  }
+}
+
+function timeOverlap(start1, end1, start2, end2) {
+  return start1 < end2 && start2 < end1;
+}
+
+// ====== LOGO HANDLING ======
+function handleLogoUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  
+  var file = input.files[0];
+  
+  // Validate file size (max 500KB)
+  if (file.size > 500 * 1024) {
+    showAlert("alert-bentrok", "Ukuran file logo terlalu besar. Maksimal 500KB.", "error");
+    input.value = "";
+    return;
+  }
+  
+  // Validate file type
+  if (!file.type.match('image/png') && !file.type.match('image/jpeg')) {
+    showAlert("alert-bentrok", "Format file harus PNG atau JPG.", "error");
+    input.value = "";
+    return;
+  }
+  
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    logoData = e.target.result;
+    var preview = document.getElementById("logoPreview");
+    preview.src = logoData;
+    preview.classList.add("show");
+    document.getElementById("btnRemoveLogo").style.display = "inline-block";
+    saveToStorage();
+    showAlert("alert-bentrok", "Logo berhasil diupload! ✓", "success");
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeLogo() {
+  logoData = null;
+  document.getElementById("pdfLogo").value = "";
+  document.getElementById("logoPreview").classList.remove("show");
+  document.getElementById("btnRemoveLogo").style.display = "none";
+  localStorage.removeItem("logoData");
+  showAlert("alert-bentrok", "Logo berhasil dihapus.", "info");
+}
+
+function updatePreview() {
+  // Live preview update (optional enhancement)
+}
+
+// ====== GURU MANAGEMENT ======
+function renderGuru() {
+  var tbody = document.querySelector("#tabelGuru tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  
+  for (var i = 0; i < guruList.length; i++) {
+    var g = guruList[i];
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + (i + 1) + "</td>" +
+      "<td>" + g.nama + "</td>" +
+      "<td><strong>" + g.kode + "</strong></td>" +
+      "<td>" + (g.email || "-") + "</td>" +
+      "<td>" +
+      '<button class="btn btn-danger btn-icon" onclick="hapusGuru(' + i + ')">🗑️</button>' +
+      "</td>";
+    tbody.appendChild(tr);
+  }
+  
+  renderDropdownGuru();
+}
+
+function renderDropdownGuru() {
+  var selects = [
+    document.getElementById("jmGuru"),
+    document.getElementById("jpGuru")
+  ];
+  
+  selects.forEach(function(sel) {
+    if (!sel) return;
+    sel.innerHTML = '<option value="">-- Pilih Guru --</option>';
+    for (var i = 0; i < guruList.length; i++) {
+      var opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = guruList[i].nama + " (" + guruList[i].kode + ")";
+      sel.appendChild(opt);
+    }
+  });
+}
+
+function tambahGuru() {
+  showAlert("alert-master", "");
+  
+  var nama = document.getElementById("guruNama").value.trim();
+  var kode = document.getElementById("guruKode").value.trim().toUpperCase();
+  var email = document.getElementById("guruEmail").value.trim();
+  
+  if (!nama || !kode) {
+    showAlert("alert-master", "Nama dan Kode Guru wajib diisi.", "error");
+    return;
+  }
+  
+  // Check duplicate kode
+  for (var i = 0; i < guruList.length; i++) {
+    if (guruList[i].kode === kode) {
+      showAlert("alert-master", "Kode guru sudah digunakan. Gunakan kode lain.", "error");
+      return;
+    }
+  }
+  
+  guruList.push({ nama: nama, kode: kode, email: email });
+  renderGuru();
+  saveToStorage();
+  clearFormGuru();
+  showAlert("alert-master", "Data guru berhasil disimpan! ✓", "success");
+}
+
+function hapusGuru(index) {
+  if (!confirm("Yakin ingin menghapus guru ini?")) return;
+  
+  var kode = guruList[index].kode;
+  
+  // Check if guru has schedules
+  var hasSchedule = false;
+  for (var i = 0; i < jadwalMengajar.length; i++) {
+    if (jadwalMengajar[i].guruKode === kode) {
+      hasSchedule = true;
+      break;
+    }
+  }
+  if (!hasSchedule) {
+    for (var j = 0; j < jadwalPengawas.length; j++) {
+      if (jadwalPengawas[j].guruKode === kode) {
+        hasSchedule = true;
+        break;
+      }
+    }
+  }
+  
+  if (hasSchedule) {
+    if (!confirm("Guru ini memiliki jadwal. Jadwal akan ikut terhapus. Lanjutkan?")) return;
+    
+    // Remove schedules
+    jadwalMengajar = jadwalMengajar.filter(function(j) { return j.guruKode !== kode; });
+    jadwalPengawas = jadwalPengawas.filter(function(j) { return j.guruKode !== kode; });
+    renderJadwalMengajar();
+    renderJadwalPengawas();
+  }
+  
+  guruList.splice(index, 1);
+  renderGuru();
+  saveToStorage();
+  showAlert("alert-master", "Guru berhasil dihapus.", "info");
+}
+
+function clearFormGuru() {
+  document.getElementById("guruNama").value = "";
+  document.getElementById("guruKode").value = "";
+  document.getElementById("guruEmail").value = "";
+}
+
+// ====== KELAS MANAGEMENT ======
+function renderKelas() {
+  var tbody = document.querySelector("#tabelKelas tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  
+  for (var i = 0; i < kelasList.length; i++) {
+    var k = kelasList[i];
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + (i + 1) + "</td>" +
+      "<td>" + k.nama + "</td>" +
+      "<td>" + (k.jumlah || "-") + "</td>" +
+      "<td>" +
+      '<button class="btn btn-danger btn-icon" onclick="hapusKelas(' + i + ')">🗑️</button>' +
+      "</td>";
+    tbody.appendChild(tr);
+  }
+  
+  renderDropdownKelas();
+}
+
+function renderDropdownKelas() {
+  var sel = document.getElementById("jmKelas");
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+  for (var i = 0; i < kelasList.length; i++) {
+    var opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = kelasList[i].nama;
+    sel.appendChild(opt);
+  }
+}
+
+function tambahKelas() {
+  showAlert("alert-master", "");
+  
+  var nama = document.getElementById("kelasNama").value.trim();
+  var jumlah = document.getElementById("kelasJumlah").value.trim();
+  
+  if (!nama) {
+    showAlert("alert-master", "Nama Kelas wajib diisi.", "error");
+    return;
+  }
+  
+  // Check duplicate
+  for (var i = 0; i < kelasList.length; i++) {
+    if (kelasList[i].nama === nama) {
+      showAlert("alert-master", "Nama kelas sudah ada. Gunakan nama lain.", "error");
+      return;
+    }
+  }
+  
+  kelasList.push({ nama: nama, jumlah: jumlah || null });
+  renderKelas();
+  saveToStorage();
+  clearFormKelas();
+  showAlert("alert-master", "Data kelas berhasil disimpan! ✓", "success");
+}
+
+function hapusKelas(index) {
+  if (!confirm("Yakin ingin menghapus kelas ini?")) return;
+  
+  var nama = kelasList[index].nama;
+  
+  // Check if class has schedules
+  var hasSchedule = false;
+  for (var i = 0; i < jadwalMengajar.length; i++) {
+    if (jadwalMengajar[i].kelas === nama) {
+      hasSchedule = true;
+      break;
+    }
+  }
+  
+  if (hasSchedule) {
+    if (!confirm("Kelas ini memiliki jadwal mengajar. Jadwal akan ikut terhapus. Lanjutkan?")) return;
+    
+    jadwalMengajar = jadwalMengajar.filter(function(j) { return j.kelas !== nama; });
+    renderJadwalMengajar();
+  }
+  
+  kelasList.splice(index, 1);
+  renderKelas();
+  saveToStorage();
+  showAlert("alert-master", "Kelas berhasil dihapus.", "info");
+}
+
+function clearFormKelas() {
+  document.getElementById("kelasNama").value = "";
+  document.getElementById("kelasJumlah").value = "";
+}
+
+// ====== JADWAL MENGAJAR ======
+function renderJadwalMengajar() {
+  var tbody = document.querySelector("#tabelJadwalMengajar tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  
+  if (jadwalMengajar.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#718096;">Belum ada jadwal mengajar</td></tr>';
+    return;
+  }
+  
+  for (var i = 0; i < jadwalMengajar.length; i++) {
+    var j = jadwalMengajar[i];
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + (i + 1) + "</td>" +
+      "<td>" + j.guruNama + " <small>(" + j.guruKode + ")</small></td>" +
+      "<td>" + j.kelas + "</td>" +
+      "<td>" + (j.mapel || "-") + "</td>" +
+      "<td>" + j.hari + "</td>" +
+      "<td>" + j.mulai + " - " + j.selesai + "</td>" +
+      "<td>" +
+      '<button class="btn btn-danger btn-icon" onclick="hapusJadwalMengajar(' + i + ')">🗑️</button>' +
+      "</td>";
+    tbody.appendChild(tr);
+  }
+}
+
+function tambahJadwalMengajar() {
+  showAlert("alert-mengajar", "");
+  
+  var idxGuru = document.getElementById("jmGuru").value;
+  var idxKelas = document.getElementById("jmKelas").value;
+  var mapel = document.getElementById("jmMapel").value.trim();
+  var hari = document.getElementById("jmHari").value;
+  var mulai = document.getElementById("jmMulai").value;
+  var selesai = document.getElementById("jmSelesai").value;
+  
+  if (idxGuru === "" || idxKelas === "" || !hari || !mulai || !selesai) {
+    showAlert("alert-mengajar", "Guru, Kelas, Hari, dan Jam wajib diisi.", "error");
+    return;
+  }
+  
+  if (mulai >= selesai) {
+    showAlert("alert-mengajar", "Jam mulai harus lebih awal dari jam selesai.", "error");
+    return;
+  }
+  
+  var guru = guruList[parseInt(idxGuru, 10)];
+  var kelas = kelasList[parseInt(idxKelas, 10)];
+  
+  // Validasi bentrok - guru tidak bisa mengajar di 2 kelas di jam yang sama
+  for (var i = 0; i < jadwalMengajar.length; i++) {
+    var j = jadwalMengajar[i];
+    if (j.guruKode === guru.kode && j.hari === hari && timeOverlap(j.mulai, j.selesai, mulai, selesai)) {
+      showAlert("alert-mengajar", "❌ Bentrok! " + guru.nama + " sudah mengajar di " + j.kelas + " pada " + j.hari + " jam " + j.mulai + "-" + j.selesai, "error");
+      return;
+    }
+  }
+  
+  // Validasi bentrok dengan jadwal pengawas
+  for (var k = 0; k < jadwalPengawas.length; k++) {
+    var p = jadwalPengawas[k];
+    if (p.guruKode === guru.kode && p.hari === hari && timeOverlap(p.mulai, p.selesai, mulai, selesai)) {
+      showAlert("alert-mengajar", "❌ Bentrok! " + guru.nama + " sudah bertugas sebagai pengawas di " + p.ruang + " pada " + p.hari + " jam " + p.mulai + "-" + p.selesai, "error");
+      return;
+    }
+  }
+  
+  // Validasi kelas tidak boleh ada 2 guru di jam yang sama
+  for (var m = 0; m < jadwalMengajar.length; m++) {
+    var jm = jadwalMengajar[m];
+    if (jm.kelas === kelas.nama && jm.hari === hari && timeOverlap(jm.mulai, jm.selesai, mulai, selesai)) {
+      showAlert("alert-mengajar", "❌ Bentrok! Kelas " + kelas.nama + " sudah ada jadwal dengan guru " + jm.guruNama + " pada " + jm.hari + " jam " + jm.mulai + "-" + jm.selesai, "error");
+      return;
+    }
+  }
+  
+  jadwalMengajar.push({
+    guruNama: guru.nama,
+    guruKode: guru.kode,
+    kelas: kelas.nama,
+    mapel: mapel,
+    hari: hari,
+    mulai: mulai,
+    selesai: selesai
+  });
+  
+  renderJadwalMengajar();
+  saveToStorage();
+  clearFormMengajar();
+  showAlert("alert-mengajar", "✓ Jadwal mengajar berhasil ditambahkan tanpa bentrok!", "success");
+}
+
+function hapusJadwalMengajar(index) {
+  if (!confirm("Yakin ingin menghapus jadwal ini?")) return;
+  jadwalMengajar.splice(index, 1);
+  renderJadwalMengajar();
+  saveToStorage();
+  showAlert("alert-mengajar", "Jadwal berhasil dihapus.", "info");
+}
+
+function clearFormMengajar() {
+  document.getElementById("jmGuru").value = "";
+  document.getElementById("jmKelas").value = "";
+  document.getElementById("jmMapel").value = "";
+  document.getElementById("jmHari").value = "";
+  document.getElementById("jmMulai").value = "";
+  document.getElementById("jmSelesai").value = "";
+}
+
+// ====== JADWAL PENGAWAS ======
+function renderJadwalPengawas() {
+  var tbody = document.querySelector("#tabelJadwalPengawas tbody");
+  if (!tbody) return;
+  tbody.innerHTML = "";
+  
+  if (jadwalPengawas.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#718096;">Belum ada jadwal pengawas</td></tr>';
+    return;
+  }
+  
+  for (var i = 0; i < jadwalPengawas.length; i++) {
+    var p = jadwalPengawas[i];
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      "<td>" + (i + 1) + "</td>" +
+      "<td>" + p.guruNama + " <small>(" + p.guruKode + ")</small></td>" +
+      "<td>" + p.ruang + "</td>" +
+      "<td>" + (p.jenis || "-") + "</td>" +
+      "<td>" + p.hari + "</td>" +
+      "<td>" + p.mulai + " - " + p.selesai + "</td>" +
+      "<td>" +
+      '<button class="btn btn-danger btn-icon" onclick="hapusJadwalPengawas(' + i + ')">🗑️</button>' +
+      "</td>";
+    tbody.appendChild(tr);
+  }
+}
+
+function tambahJadwalPengawas() {
+  showAlert("alert-pengawas", "");
+  
+  var idxGuru = document.getElementById("jpGuru").value;
+  var ruang = document.getElementById("jpRuang").value.trim();
+  var jenis = document.getElementById("jpJenis").value.trim();
+  var hari = document.getElementById("jpHari").value;
+  var mulai = document.getElementById("jpMulai").value;
+  var selesai = document.getElementById("jpSelesai").value;
+  
+  if (idxGuru === "" || !ruang || !hari || !mulai || !selesai) {
+    showAlert("alert-pengawas", "Guru, Ruang, Hari, dan Jam wajib diisi.", "error");
+    return;
+  }
+  
+  if (mulai >= selesai) {
+    showAlert("alert-pengawas", "Jam mulai harus lebih awal dari jam selesai.", "error");
+    return;
+  }
+  
+  var guru = guruList[parseInt(idxGuru, 10)];
+  
+  // Validasi bentrok dengan jadwal pengawas lain
+  for (var i = 0; i < jadwalPengawas.length; i++) {
+    var p = jadwalPengawas[i];
+    if (p.guruKode === guru.kode && p.hari === hari && timeOverlap(p.mulai, p.selesai, mulai, selesai)) {
+      showAlert("alert-pengawas", "❌ Bentrok! " + guru.nama + " sudah bertugas di " + p.ruang + " pada " + p.hari + " jam " + p.mulai + "-" + p.selesai, "error");
+      return;
+    }
+  }
+  
+  // Validasi bentrok dengan jadwal mengajar
+  for (var j = 0; j < jadwalMengajar.length; j++) {
+    var m = jadwalMengajar[j];
+    if (m.guruKode === guru.kode && m.hari === hari && timeOverlap(m.mulai, m.selesai, mulai, selesai)) {
+      showAlert("alert-pengawas", "❌ Bentrok! " + guru.nama + " sedang mengajar di " + m.kelas + " pada " + m.hari + " jam " + m.mulai + "-" + m.selesai, "error");
+      return;
+    }
+  }
+  
+  jadwalPengawas.push({
+    guruNama: guru.nama,
+    guruKode: guru.kode,
+    ruang: ruang,
+    jenis: jenis,
+    hari: hari,
+    mulai: mulai,
+    selesai: selesai
+  });
+  
+  renderJadwalPengawas();
+  saveToStorage();
+  clearFormPengawas();
+  showAlert("alert-pengawas", "✓ Jadwal pengawas berhasil ditambahkan tanpa bentrok!", "success");
+}
+
+function hapusJadwalPengawas(index) {
+  if (!confirm("Yakin ingin menghapus jadwal ini?")) return;
+  jadwalPengawas.splice(index, 1);
+  renderJadwalPengawas();
+  saveToStorage();
+  showAlert("alert-pengawas", "Jadwal berhasil dihapus.", "info");
+}
+
+function clearFormPengawas() {
+  document.getElementById("jpGuru").value = "";
+  document.getElementById("jpRuang").value = "";
+  document.getElementById("jpJenis").value = "";
+  document.getElementById("jpHari").value = "";
+  document.getElementById("jpMulai").value = "";
+  document.getElementById("jpSelesai").value = "";
+}
+
+// ====== CEK BENTROK ======
+function cekBentrok() {
+  var pesan = "";
+  var count = 0;
+  
+  // Check teaching schedule conflicts
+  for (var i = 0; i < jadwalMengajar.length; i++) {
+    for (var j = i + 1; j < jadwalMengajar.length; j++) {
+      var a = jadwalMengajar[i];
+      var b = jadwalMengajar[j];
+      
+      // Same teacher, same day, overlapping time
+      if (a.guruKode === b.guruKode && a.hari === b.hari && timeOverlap(a.mulai, a.selesai, b.mulai, b.selesai)) {
+        count++;
+        pesan += count + ". ❌ <strong>Bentrok Mengajar:</strong> " + a.guruNama + " di " + a.kelas + " dan " + b.kelas + " pada " + a.hari + " jam " + a.mulai + "-" + a.selesai + "<br>";
+      }
+      
+      // Same class, same day, overlapping time (different teachers)
+      if (a.kelas === b.kelas && a.hari === b.hari && timeOverlap(a.mulai, a.selesai, b.mulai, b.selesai)) {
+        count++;
+        pesan += count + ". ❌ <strong>Bentrok Kelas:</strong> " + a.kelas + " dijadwalkan dengan " + a.guruNama + " dan " + b.guruNama + " pada " + a.hari + " jam " + a.mulai + "-" + a.selesai + "<br>";
+      }
+    }
+  }
+  
+  // Check supervisor schedule conflicts
+  for (var k = 0; k < jadwalPengawas.length; k++) {
+    for (var l = k + 1; l < jadwalPengawas.length; l++) {
+      var c = jadwalPengawas[k];
+      var d = jadwalPengawas[l];
+      if (c.guruKode === d.guruKode && c.hari === d.hari && timeOverlap(c.mulai, c.selesai, d.mulai, d.selesai)) {
+        count++;
+        pesan += count + ". ❌ <strong>Bentrok Pengawas:</strong> " + c.guruNama + " di " + c.ruang + " dan " + d.ruang + " pada " + c.hari + " jam " + c.mulai + "-" + c.selesai + "<br>";
+      }
+    }
+  }
+  
+  // Check cross conflicts (teaching vs supervisor)
+  for (var x = 0; x < jadwalMengajar.length; x++) {
+    for (var y = 0; y < jadwalPengawas.length; y++) {
+      var jm = jadwalMengajar[x];
+      var jp = jadwalPengawas[y];
+      if (jm.guruKode === jp.guruKode && jm.hari === jp.hari && timeOverlap(jm.mulai, jm.selesai, jp.mulai, jp.selesai)) {
+        count++;
+        pesan += count + ". ❌ <strong>Bentrok Mengajar-Pengawas:</strong> " + jm.guruNama + " mengajar di " + jm.kelas + " dan mengawas di " + jp.ruang + " pada " + jm.hari + " jam " + jm.mulai + "-" + jm.selesai + "<br>";
+      }
+    }
+  }
+  
+  if (!pesan) {
+    showAlert("alert-bentrok", "✅ <strong>Validasi Berhasil!</strong><br>Tidak ditemukan bentrok jadwal. Semua jadwal sudah valid. 🎉", "success");
+  } else {
+    showAlert("alert-bentrok", "<strong>Ditemukan " + count + " Bentrok:</strong><br><br>" + pesan, "error");
+  }
+}
+
+function lihatMatriksJadwal() {
+  alert("Fitur matriks jadwal akan ditambahkan di versi berikutnya.");
+}
+
+// ====== PDF GENERATION ======
+function buildPdfContent(type) {
+  var instansi = document.getElementById("pdfInstansi").value || "INSTANSI PENDIDIKAN";
+  var title = document.getElementById("pdfTitle").value || "JADWAL KEGIATAN";
+  var subtitle = document.getElementById("pdfSubtitle").value || "";
+  
+  var html = '<div style="font-family: Arial, sans-serif; padding: 20px;">';
+  
+  // Header with logo
+  html += '<div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">';
+  
+  if (logoData) {
+    html += '<img src="' + logoData + '" style="max-width: 120px; max-height: 80px; margin-bottom: 10px;" />';
+  }
+  
+  html += '<h1 style="margin: 5px 0; font-size: 18px; font-weight: bold; text-transform: uppercase;">' + instansi + '</h1>';
+  html += '<h2 style="margin: 5px 0; font-size: 16px; font-weight: bold;">' + title + '</h2>';
+  
+  if (subtitle) {
+    html += '<p style="margin: 5px 0; font-size: 12px;">' + subtitle + '</p>';
+  }
+  
+  html += '</div>';
+  
+  // Content based on type
+  if (type === 'mengajar' || type === 'lengkap') {
+    html += '<h3 style="font-size: 14px; margin-top: 20px; margin-bottom: 10px; background: #667eea; color: white; padding: 8px;">JADWAL MENGAJAR GURU</h3>';
+    html += '<table style="width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 20px;">';
+    html += '<thead><tr style="background: #f0f0f0;">';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">No</th>';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">Guru</th>';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">Kelas</th>';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">Mapel</th>';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">Hari</th>';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">Jam</th>';
+    html += '</tr></thead><tbody>';
+    
+    if (jadwalMengajar.length === 0) {
+      html += '<tr><td colspan="6" style="border: 1px solid #ccc; padding: 8px; text-align: center;">Belum ada data</td></tr>';
+    } else {
+      for (var i = 0; i < jadwalMengajar.length; i++) {
+        var j = jadwalMengajar[i];
+        html += '<tr>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px; text-align: center;">' + (i + 1) + '</td>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px;">' + j.guruNama + ' (' + j.guruKode + ')</td>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px;">' + j.kelas + '</td>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px;">' + (j.mapel || '-') + '</td>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px;">' + j.hari + '</td>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px;">' + j.mulai + ' - ' + j.selesai + '</td>';
+        html += '</tr>';
+      }
+    }
+    html += '</tbody></table>';
+  }
+  
+  if (type === 'pengawas' || type === 'lengkap') {
+    html += '<h3 style="font-size: 14px; margin-top: 20px; margin-bottom: 10px; background: #48bb78; color: white; padding: 8px;">JADWAL PENGAWAS RUANG UJIAN</h3>';
+    html += '<table style="width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 20px;">';
+    html += '<thead><tr style="background: #f0f0f0;">';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">No</th>';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">Guru</th>';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">Ruang</th>';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">Jenis Ujian</th>';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">Hari</th>';
+    html += '<th style="border: 1px solid #ccc; padding: 8px;">Jam</th>';
+    html += '</tr></thead><tbody>';
+    
+    if (jadwalPengawas.length === 0) {
+      html += '<tr><td colspan="6" style="border: 1px solid #ccc; padding: 8px; text-align: center;">Belum ada data</td></tr>';
+    } else {
+      for (var k = 0; k < jadwalPengawas.length; k++) {
+        var p = jadwalPengawas[k];
+        html += '<tr>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px; text-align: center;">' + (k + 1) + '</td>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px;">' + p.guruNama + ' (' + p.guruKode + ')</td>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px;">' + p.ruang + '</td>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px;">' + (p.jenis || '-') + '</td>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px;">' + p.hari + '</td>';
+        html += '<td style="border: 1px solid #ccc; padding: 6px;">' + p.mulai + ' - ' + p.selesai + '</td>';
+        html += '</tr>';
+      }
+    }
+    html += '</tbody></table>';
+  }
+  
+  // Footer - Watermark
+  html += '<div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; text-align: center; font-size: 9px; color: #999;">';
+  html += 'Created & Developed by : D.D Candra © 2025<br>';
+  html += 'Generated on: ' + new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  html += '</div>';
+  
+  html += '</div>';
+  
+  return html;
+}
+
+function downloadPDF(type) {
+  if (type === 'mengajar' && jadwalMengajar.length === 0) {
+    alert("Belum ada data jadwal mengajar untuk didownload.");
+    return;
+  }
+  
+  if (type === 'pengawas' && jadwalPengawas.length === 0) {
+    alert("Belum ada data jadwal pengawas untuk didownload.");
+    return;
+  }
+  
+  if (type === 'lengkap' && jadwalMengajar.length === 0 && jadwalPengawas.length === 0) {
+    alert("Belum ada data jadwal untuk didownload.");
+    return;
+  }
+  
+  var content = buildPdfContent(type);
+  
+  // Create temporary element
+  var tempDiv = document.createElement('div');
+  tempDiv.innerHTML = content;
+  tempDiv.style.position = 'absolute';
+  tempDiv.style.left = '-9999px';
+  document.body.appendChild(tempDiv);
+  
+  var filename = 'jadwal-';
+  if (type === 'mengajar') filename += 'mengajar';
+  else if (type === 'pengawas') filename += 'pengawas';
+  else filename += 'lengkap';
+  filename += '-' + new Date().toISOString().split('T')[0] + '.pdf';
+  
+  var opt = {
+    margin: 10,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  
+  html2pdf().from(tempDiv).set(opt).save().then(function() {
+    document.body.removeChild(tempDiv);
+    showAlert("alert-bentrok", "✅ PDF berhasil didownload: " + filename, "success");
+  });
+}
+
+// ====== INITIALIZATION ======
+loadFromStorage();
+renderGuru();
+renderKelas();
+renderJadwalMengajar();
+renderJadwalPengawas();
+updateStats();
+</script>
+</body>
+</html>
