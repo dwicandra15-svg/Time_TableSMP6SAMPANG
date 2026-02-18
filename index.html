@@ -175,7 +175,7 @@ tbody tr:hover {
   position: fixed; 
   right: 12px; 
   bottom: 8px;
-  font-size: 24px; 
+  font-size: 14px; 
   opacity: 0.6;
   font-weight: 600;
   background: rgba(255, 255, 255, 0.8);
@@ -508,6 +508,12 @@ var kelasList = [];
 var jadwalMengajar = [];
 var jadwalPengawas = [];
 var logoData = null;
+
+// Edit mode tracking
+var editModeMengajar = false;
+var editIndexMengajar = -1;
+var editModePengawas = false;
+var editIndexPengawas = -1;
 
 // ====== STORAGE ======
 function saveToStorage() {
@@ -860,7 +866,8 @@ function renderJadwalMengajar() {
       "<td>" + j.hari + "</td>" +
       "<td>" + j.mulai + " - " + j.selesai + "</td>" +
       "<td>" +
-      '<button class="btn btn-danger btn-icon" onclick="hapusJadwalMengajar(' + i + ')">🗑️</button>' +
+      '<button class="btn btn-warning btn-icon" onclick="editJadwalMengajar(' + i + ')" title="Edit">✏️</button> ' +
+      '<button class="btn btn-danger btn-icon" onclick="hapusJadwalMengajar(' + i + ')" title="Hapus">🗑️</button>' +
       "</td>";
     tbody.appendChild(tr);
   }
@@ -891,6 +898,9 @@ function tambahJadwalMengajar() {
   
   // Validasi bentrok - guru tidak bisa mengajar di 2 kelas di jam yang sama
   for (var i = 0; i < jadwalMengajar.length; i++) {
+    // Skip current index if in edit mode
+    if (editModeMengajar && i === editIndexMengajar) continue;
+    
     var j = jadwalMengajar[i];
     if (j.guruKode === guru.kode && j.hari === hari && timeOverlap(j.mulai, j.selesai, mulai, selesai)) {
       showAlert("alert-mengajar", "❌ Bentrok! " + guru.nama + " sudah mengajar di " + j.kelas + " pada " + j.hari + " jam " + j.mulai + "-" + j.selesai, "error");
@@ -909,6 +919,9 @@ function tambahJadwalMengajar() {
   
   // Validasi kelas tidak boleh ada 2 guru di jam yang sama
   for (var m = 0; m < jadwalMengajar.length; m++) {
+    // Skip current index if in edit mode
+    if (editModeMengajar && m === editIndexMengajar) continue;
+    
     var jm = jadwalMengajar[m];
     if (jm.kelas === kelas.nama && jm.hari === hari && timeOverlap(jm.mulai, jm.selesai, mulai, selesai)) {
       showAlert("alert-mengajar", "❌ Bentrok! Kelas " + kelas.nama + " sudah ada jadwal dengan guru " + jm.guruNama + " pada " + jm.hari + " jam " + jm.mulai + "-" + jm.selesai, "error");
@@ -916,7 +929,7 @@ function tambahJadwalMengajar() {
     }
   }
   
-  jadwalMengajar.push({
+  var jadwalData = {
     guruNama: guru.nama,
     guruKode: guru.kode,
     kelas: kelas.nama,
@@ -924,12 +937,84 @@ function tambahJadwalMengajar() {
     hari: hari,
     mulai: mulai,
     selesai: selesai
-  });
+  };
+  
+  if (editModeMengajar) {
+    // Update mode
+    jadwalMengajar[editIndexMengajar] = jadwalData;
+    showAlert("alert-mengajar", "✓ Jadwal mengajar berhasil diupdate!", "success");
+    batalEditMengajar();
+  } else {
+    // Add mode
+    jadwalMengajar.push(jadwalData);
+    showAlert("alert-mengajar", "✓ Jadwal mengajar berhasil ditambahkan tanpa bentrok!", "success");
+  }
   
   renderJadwalMengajar();
   saveToStorage();
   clearFormMengajar();
-  showAlert("alert-mengajar", "✓ Jadwal mengajar berhasil ditambahkan tanpa bentrok!", "success");
+}
+
+function editJadwalMengajar(index) {
+  editModeMengajar = true;
+  editIndexMengajar = index;
+  
+  var j = jadwalMengajar[index];
+  
+  // Find guru index
+  var guruIdx = -1;
+  for (var i = 0; i < guruList.length; i++) {
+    if (guruList[i].kode === j.guruKode) {
+      guruIdx = i;
+      break;
+    }
+  }
+  
+  // Find kelas index
+  var kelasIdx = -1;
+  for (var k = 0; k < kelasList.length; k++) {
+    if (kelasList[k].nama === j.kelas) {
+      kelasIdx = k;
+      break;
+    }
+  }
+  
+  // Fill form
+  if (guruIdx >= 0) document.getElementById("jmGuru").value = guruIdx;
+  if (kelasIdx >= 0) document.getElementById("jmKelas").value = kelasIdx;
+  document.getElementById("jmMapel").value = j.mapel || "";
+  document.getElementById("jmHari").value = j.hari;
+  document.getElementById("jmMulai").value = j.mulai;
+  document.getElementById("jmSelesai").value = j.selesai;
+  
+  // Update button text
+  var btnContainer = document.querySelector("#alert-mengajar").previousElementSibling;
+  if (btnContainer && btnContainer.classList.contains("btn-row")) {
+    btnContainer.innerHTML = 
+      '<button type="button" class="btn btn-warning" onclick="tambahJadwalMengajar()">💾 Update Jadwal</button>' +
+      '<button type="button" class="btn btn-secondary" onclick="batalEditMengajar()">❌ Batal Edit</button>';
+  }
+  
+  // Scroll to form
+  document.getElementById("jmGuru").scrollIntoView({ behavior: "smooth", block: "center" });
+  
+  showAlert("alert-mengajar", "📝 Mode Edit: Silakan ubah data dan klik Update.", "info");
+}
+
+function batalEditMengajar() {
+  editModeMengajar = false;
+  editIndexMengajar = -1;
+  clearFormMengajar();
+  
+  // Reset button
+  var btnContainer = document.querySelector("#alert-mengajar").previousElementSibling;
+  if (btnContainer && btnContainer.classList.contains("btn-row")) {
+    btnContainer.innerHTML = 
+      '<button type="button" class="btn btn-primary" onclick="tambahJadwalMengajar()">➕ Tambah Jadwal</button>' +
+      '<button type="button" class="btn btn-secondary" onclick="clearFormMengajar()">🔄 Reset Form</button>';
+  }
+  
+  showAlert("alert-mengajar", "");
 }
 
 function hapusJadwalMengajar(index) {
@@ -971,7 +1056,8 @@ function renderJadwalPengawas() {
       "<td>" + p.hari + "</td>" +
       "<td>" + p.mulai + " - " + p.selesai + "</td>" +
       "<td>" +
-      '<button class="btn btn-danger btn-icon" onclick="hapusJadwalPengawas(' + i + ')">🗑️</button>' +
+      '<button class="btn btn-warning btn-icon" onclick="editJadwalPengawas(' + i + ')" title="Edit">✏️</button> ' +
+      '<button class="btn btn-danger btn-icon" onclick="hapusJadwalPengawas(' + i + ')" title="Hapus">🗑️</button>' +
       "</td>";
     tbody.appendChild(tr);
   }
@@ -1001,6 +1087,9 @@ function tambahJadwalPengawas() {
   
   // Validasi bentrok dengan jadwal pengawas lain
   for (var i = 0; i < jadwalPengawas.length; i++) {
+    // Skip current index if in edit mode
+    if (editModePengawas && i === editIndexPengawas) continue;
+    
     var p = jadwalPengawas[i];
     if (p.guruKode === guru.kode && p.hari === hari && timeOverlap(p.mulai, p.selesai, mulai, selesai)) {
       showAlert("alert-pengawas", "❌ Bentrok! " + guru.nama + " sudah bertugas di " + p.ruang + " pada " + p.hari + " jam " + p.mulai + "-" + p.selesai, "error");
@@ -1017,7 +1106,7 @@ function tambahJadwalPengawas() {
     }
   }
   
-  jadwalPengawas.push({
+  var jadwalData = {
     guruNama: guru.nama,
     guruKode: guru.kode,
     ruang: ruang,
@@ -1025,12 +1114,75 @@ function tambahJadwalPengawas() {
     hari: hari,
     mulai: mulai,
     selesai: selesai
-  });
+  };
+  
+  if (editModePengawas) {
+    // Update mode
+    jadwalPengawas[editIndexPengawas] = jadwalData;
+    showAlert("alert-pengawas", "✓ Jadwal pengawas berhasil diupdate!", "success");
+    batalEditPengawas();
+  } else {
+    // Add mode
+    jadwalPengawas.push(jadwalData);
+    showAlert("alert-pengawas", "✓ Jadwal pengawas berhasil ditambahkan tanpa bentrok!", "success");
+  }
   
   renderJadwalPengawas();
   saveToStorage();
   clearFormPengawas();
-  showAlert("alert-pengawas", "✓ Jadwal pengawas berhasil ditambahkan tanpa bentrok!", "success");
+}
+
+function editJadwalPengawas(index) {
+  editModePengawas = true;
+  editIndexPengawas = index;
+  
+  var p = jadwalPengawas[index];
+  
+  // Find guru index
+  var guruIdx = -1;
+  for (var i = 0; i < guruList.length; i++) {
+    if (guruList[i].kode === p.guruKode) {
+      guruIdx = i;
+      break;
+    }
+  }
+  
+  // Fill form
+  if (guruIdx >= 0) document.getElementById("jpGuru").value = guruIdx;
+  document.getElementById("jpRuang").value = p.ruang;
+  document.getElementById("jpJenis").value = p.jenis || "";
+  document.getElementById("jpHari").value = p.hari;
+  document.getElementById("jpMulai").value = p.mulai;
+  document.getElementById("jpSelesai").value = p.selesai;
+  
+  // Update button text
+  var btnContainer = document.querySelector("#alert-pengawas").previousElementSibling;
+  if (btnContainer && btnContainer.classList.contains("btn-row")) {
+    btnContainer.innerHTML = 
+      '<button type="button" class="btn btn-warning" onclick="tambahJadwalPengawas()">💾 Update Jadwal</button>' +
+      '<button type="button" class="btn btn-secondary" onclick="batalEditPengawas()">❌ Batal Edit</button>';
+  }
+  
+  // Scroll to form
+  document.getElementById("jpGuru").scrollIntoView({ behavior: "smooth", block: "center" });
+  
+  showAlert("alert-pengawas", "📝 Mode Edit: Silakan ubah data dan klik Update.", "info");
+}
+
+function batalEditPengawas() {
+  editModePengawas = false;
+  editIndexPengawas = -1;
+  clearFormPengawas();
+  
+  // Reset button
+  var btnContainer = document.querySelector("#alert-pengawas").previousElementSibling;
+  if (btnContainer && btnContainer.classList.contains("btn-row")) {
+    btnContainer.innerHTML = 
+      '<button type="button" class="btn btn-primary" onclick="tambahJadwalPengawas()">➕ Tambah Jadwal</button>' +
+      '<button type="button" class="btn btn-secondary" onclick="clearFormPengawas()">🔄 Reset Form</button>';
+  }
+  
+  showAlert("alert-pengawas", "");
 }
 
 function hapusJadwalPengawas(index) {
