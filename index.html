@@ -1085,7 +1085,7 @@ function tambahJadwalPengawas() {
   
   var guru = guruList[parseInt(idxGuru, 10)];
   
-  // Validasi bentrok dengan jadwal pengawas lain
+  // Validasi bentrok dengan jadwal pengawas lain (guru yang sama)
   for (var i = 0; i < jadwalPengawas.length; i++) {
     // Skip current index if in edit mode
     if (editModePengawas && i === editIndexPengawas) continue;
@@ -1093,6 +1093,18 @@ function tambahJadwalPengawas() {
     var p = jadwalPengawas[i];
     if (p.guruKode === guru.kode && p.hari === hari && timeOverlap(p.mulai, p.selesai, mulai, selesai)) {
       showAlert("alert-pengawas", "❌ Bentrok! " + guru.nama + " sudah bertugas di " + p.ruang + " pada " + p.hari + " jam " + p.mulai + "-" + p.selesai, "error");
+      return;
+    }
+  }
+  
+  // VALIDASI BARU: Bentrok ruang - satu ruang tidak boleh ada 2 pengawas di waktu yang sama
+  for (var k = 0; k < jadwalPengawas.length; k++) {
+    // Skip current index if in edit mode
+    if (editModePengawas && k === editIndexPengawas) continue;
+    
+    var pr = jadwalPengawas[k];
+    if (pr.ruang === ruang && pr.hari === hari && timeOverlap(pr.mulai, pr.selesai, mulai, selesai)) {
+      showAlert("alert-pengawas", "❌ Bentrok Ruang! " + ruang + " sudah dijaga oleh " + pr.guruNama + " pada " + pr.hari + " jam " + pr.mulai + "-" + pr.selesai + ". Satu ruang tidak boleh ada 2 pengawas di waktu yang sama.", "error");
       return;
     }
   }
@@ -1232,9 +1244,17 @@ function cekBentrok() {
     for (var l = k + 1; l < jadwalPengawas.length; l++) {
       var c = jadwalPengawas[k];
       var d = jadwalPengawas[l];
+      
+      // Same teacher, same day, overlapping time
       if (c.guruKode === d.guruKode && c.hari === d.hari && timeOverlap(c.mulai, c.selesai, d.mulai, d.selesai)) {
         count++;
-        pesan += count + ". ❌ <strong>Bentrok Pengawas:</strong> " + c.guruNama + " di " + c.ruang + " dan " + d.ruang + " pada " + c.hari + " jam " + c.mulai + "-" + c.selesai + "<br>";
+        pesan += count + ". ❌ <strong>Bentrok Pengawas (Guru Sama):</strong> " + c.guruNama + " di " + c.ruang + " dan " + d.ruang + " pada " + c.hari + " jam " + c.mulai + "-" + c.selesai + "<br>";
+      }
+      
+      // Same room, same day, overlapping time - VALIDASI BARU
+      if (c.ruang === d.ruang && c.hari === d.hari && timeOverlap(c.mulai, c.selesai, d.mulai, d.selesai)) {
+        count++;
+        pesan += count + ". ❌ <strong>Bentrok Ruang:</strong> " + c.ruang + " dijaga oleh " + c.guruNama + " dan " + d.guruNama + " pada " + c.hari + " jam " + c.mulai + "-" + c.selesai + "<br>";
       }
     }
   }
