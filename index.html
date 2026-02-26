@@ -482,7 +482,11 @@ tbody tr:hover {
     </div>
   </div>
 
-  <div class="btn-row" style="margin-top: 20px;">
+  <div style="margin-top: 16px; padding: 10px 14px; background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 8px; font-size: 0.85rem; color: #2b6cb0;" id="storageStatusBar">
+    🔄 Memuat status data...
+  </div>
+
+  <div class="btn-row" style="margin-top: 16px;">
     <button type="button" class="btn btn-primary" onclick="downloadPDF('mengajar')">📥 Download Jadwal Mengajar (PDF)</button>
     <button type="button" class="btn btn-success" onclick="downloadPDF('pengawas')">📥 Download Jadwal Pengawas (PDF)</button>
     <button type="button" class="btn btn-warning" onclick="downloadPDF('lengkap')">📥 Download Laporan Lengkap (PDF)</button>
@@ -516,18 +520,32 @@ var editModePengawas = false;
 var editIndexPengawas = -1;
 
 // ====== STORAGE ======
+var storageAvailable = (function() {
+  try {
+    var test = '__storage_test__';
+    localStorage.setItem(test, test);
+    localStorage.removeItem(test);
+    return true;
+  } catch(e) {
+    return false;
+  }
+})();
+
 function saveToStorage() {
   try {
-    localStorage.setItem("guruList", JSON.stringify(guruList));
-    localStorage.setItem("kelasList", JSON.stringify(kelasList));
-    localStorage.setItem("jadwalMengajar", JSON.stringify(jadwalMengajar));
-    localStorage.setItem("jadwalPengawas", JSON.stringify(jadwalPengawas));
-    if (logoData) {
-      localStorage.setItem("logoData", logoData);
+    if (storageAvailable) {
+      localStorage.setItem("guruList", JSON.stringify(guruList));
+      localStorage.setItem("kelasList", JSON.stringify(kelasList));
+      localStorage.setItem("jadwalMengajar", JSON.stringify(jadwalMengajar));
+      localStorage.setItem("jadwalPengawas", JSON.stringify(jadwalPengawas));
+      if (logoData) {
+        localStorage.setItem("logoData", logoData);
+      }
     }
     updateStats();
   } catch (e) {
     console.error("Error saving to storage:", e);
+    updateStats();
   }
 }
 
@@ -563,6 +581,25 @@ function updateStats() {
   document.getElementById("statKelas").textContent = kelasList.length;
   document.getElementById("statMengajar").textContent = jadwalMengajar.length;
   document.getElementById("statPengawas").textContent = jadwalPengawas.length;
+  updateStorageStatus();
+}
+
+function updateStorageStatus() {
+  var bar = document.getElementById("storageStatusBar");
+  if (!bar) return;
+  var total = jadwalMengajar.length + jadwalPengawas.length;
+  if (total === 0) {
+    bar.style.background = "#fff5f5";
+    bar.style.borderColor = "#fed7d7";
+    bar.style.color = "#c53030";
+    bar.innerHTML = "⚠️ Belum ada data jadwal yang tersimpan. Tambahkan data terlebih dahulu sebelum download PDF.";
+  } else {
+    bar.style.background = "#f0fff4";
+    bar.style.borderColor = "#9ae6b4";
+    bar.style.color = "#276749";
+    bar.innerHTML = "✅ Data siap: <strong>" + jadwalMengajar.length + "</strong> jadwal mengajar, <strong>" + jadwalPengawas.length + "</strong> jadwal pengawas — siap untuk didownload." +
+      (!storageAvailable ? " <span style='color:#e53e3e'>(⚠️ LocalStorage tidak aktif — data akan hilang jika halaman direfresh)</span>" : "");
+  }
 }
 
 // ====== HELPER FUNCTIONS ======
@@ -1379,13 +1416,18 @@ function buildPdfContent(type) {
 }
 
 function downloadPDF(type) {
+  // Debug: log data saat ini
+  console.log("downloadPDF dipanggil, type:", type);
+  console.log("jadwalMengajar:", jadwalMengajar.length, "items");
+  console.log("jadwalPengawas:", jadwalPengawas.length, "items");
+  
   if (type === 'mengajar' && jadwalMengajar.length === 0) {
-    alert("Belum ada data jadwal mengajar untuk didownload.");
+    alert("Belum ada data jadwal mengajar untuk didownload.\nPastikan data sudah ditambahkan dan tersimpan.");
     return;
   }
   
   if (type === 'pengawas' && jadwalPengawas.length === 0) {
-    alert("Belum ada data jadwal pengawas untuk didownload.");
+    alert("Belum ada data jadwal pengawas untuk didownload.\nPastikan data sudah ditambahkan dan tersimpan.");
     return;
   }
   
@@ -1396,11 +1438,16 @@ function downloadPDF(type) {
   
   var content = buildPdfContent(type);
   
-  // Create temporary element
+  // Create temporary element - FIXED: pakai posisi visible agar html2pdf bisa render dengan benar
   var tempDiv = document.createElement('div');
   tempDiv.innerHTML = content;
-  tempDiv.style.position = 'absolute';
-  tempDiv.style.left = '-9999px';
+  tempDiv.style.position = 'fixed';
+  tempDiv.style.top = '0';
+  tempDiv.style.left = '0';
+  tempDiv.style.width = '210mm';
+  tempDiv.style.backgroundColor = '#ffffff';
+  tempDiv.style.zIndex = '-9999';
+  tempDiv.style.opacity = '0';
   document.body.appendChild(tempDiv);
   
   var filename = 'jadwal-';
@@ -1413,13 +1460,22 @@ function downloadPDF(type) {
     margin: 10,
     filename: filename,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2 },
+    html2canvas: { 
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      allowTaint: true
+    },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
   
   html2pdf().from(tempDiv).set(opt).save().then(function() {
     document.body.removeChild(tempDiv);
     showAlert("alert-bentrok", "✅ PDF berhasil didownload: " + filename, "success");
+  }).catch(function(err) {
+    document.body.removeChild(tempDiv);
+    console.error("PDF error:", err);
+    alert("Gagal membuat PDF. Coba lagi atau gunakan browser lain.");
   });
 }
 
