@@ -7,6 +7,9 @@
 
 <!-- CDN html2pdf -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+<!-- CDN jsPDF sebagai fallback -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 
 <style>
 * {
@@ -484,6 +487,49 @@ tbody tr:hover {
 
   <div style="margin-top: 16px; padding: 10px 14px; background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 8px; font-size: 0.85rem; color: #2b6cb0;" id="storageStatusBar">
     🔄 Memuat status data...
+  </div>
+
+  <!-- FILTER DOWNLOAD -->
+  <div style="margin-top: 18px; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px;">
+    <h4 style="margin: 0 0 14px 0; font-size: 0.95rem; color: #4a5568;">🔽 Filter & Opsi Download PDF</h4>
+    <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end;">
+
+      <!-- Filter Hari -->
+      <div style="flex: 1; min-width: 140px;">
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #718096; margin-bottom: 4px;">📅 Filter Hari</label>
+        <select id="filterHari" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 0.88rem; background: white;">
+          <option value="">Semua Hari</option>
+          <option value="Senin">Senin</option>
+          <option value="Selasa">Selasa</option>
+          <option value="Rabu">Rabu</option>
+          <option value="Kamis">Kamis</option>
+          <option value="Jumat">Jumat</option>
+          <option value="Sabtu">Sabtu</option>
+        </select>
+      </div>
+
+      <!-- Filter Jam Mulai Dari -->
+      <div style="flex: 1; min-width: 130px;">
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #718096; margin-bottom: 4px;">⏰ Jam Mulai ≥</label>
+        <input type="time" id="filterJamMulai" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 0.88rem; background: white;">
+      </div>
+
+      <!-- Filter Jam Selesai Sampai -->
+      <div style="flex: 1; min-width: 130px;">
+        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #718096; margin-bottom: 4px;">⏰ Jam Selesai ≤</label>
+        <input type="time" id="filterJamSelesai" style="width: 100%; padding: 8px 10px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 0.88rem; background: white;">
+      </div>
+
+      <!-- Reset Filter -->
+      <div style="flex: 0 0 auto;">
+        <button type="button" onclick="resetFilter()" style="padding: 8px 14px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; font-size: 0.85rem; cursor: pointer;">🔄 Reset Filter</button>
+      </div>
+    </div>
+
+    <!-- Info filter aktif -->
+    <div id="filterInfo" style="margin-top: 10px; font-size: 0.8rem; color: #718096; display: none;">
+      ℹ️ Filter aktif — hanya data yang sesuai filter yang akan masuk ke PDF.
+    </div>
   </div>
 
   <div class="btn-row" style="margin-top: 16px;">
@@ -1415,68 +1461,301 @@ function buildPdfContent(type) {
   return html;
 }
 
+// ====== HELPER: URUTAN HARI ======
+var URUTAN_HARI = { 'Senin': 1, 'Selasa': 2, 'Rabu': 3, 'Kamis': 4, 'Jumat': 5, 'Sabtu': 6, 'Minggu': 7 };
+
+function resetFilter() {
+  document.getElementById("filterHari").value = "";
+  document.getElementById("filterJamMulai").value = "";
+  document.getElementById("filterJamSelesai").value = "";
+  document.getElementById("filterInfo").style.display = "none";
+}
+
+function getFilteredData(dataArray) {
+  var hari     = document.getElementById("filterHari").value;
+  var jamMulai = document.getElementById("filterJamMulai").value;   // "HH:MM"
+  var jamSelesai = document.getElementById("filterJamSelesai").value;
+  var filtered = dataArray.slice(); // copy
+
+  if (hari) {
+    filtered = filtered.filter(function(d) { return d.hari === hari; });
+  }
+  if (jamMulai) {
+    filtered = filtered.filter(function(d) { return d.mulai >= jamMulai; });
+  }
+  if (jamSelesai) {
+    filtered = filtered.filter(function(d) { return d.selesai <= jamSelesai; });
+  }
+
+  // Sort: hari → jam mulai → jam selesai
+  filtered.sort(function(a, b) {
+    var hA = URUTAN_HARI[a.hari] || 99;
+    var hB = URUTAN_HARI[b.hari] || 99;
+    if (hA !== hB) return hA - hB;
+    if (a.mulai !== b.mulai) return a.mulai < b.mulai ? -1 : 1;
+    return a.selesai < b.selesai ? -1 : 1;
+  });
+
+  return filtered;
+}
+
+function showFilterInfo() {
+  var hari = document.getElementById("filterHari").value;
+  var jamMulai = document.getElementById("filterJamMulai").value;
+  var jamSelesai = document.getElementById("filterJamSelesai").value;
+  var info = document.getElementById("filterInfo");
+  if (hari || jamMulai || jamSelesai) {
+    var parts = [];
+    if (hari) parts.push("Hari: <strong>" + hari + "</strong>");
+    if (jamMulai) parts.push("Jam mulai ≥ <strong>" + jamMulai + "</strong>");
+    if (jamSelesai) parts.push("Jam selesai ≤ <strong>" + jamSelesai + "</strong>");
+    info.innerHTML = "ℹ️ Filter aktif — " + parts.join(", ") + ". Hanya data yang sesuai filter yang masuk ke PDF.";
+    info.style.display = "block";
+  } else {
+    info.style.display = "none";
+  }
+}
+
 function downloadPDF(type) {
-  // Debug: log data saat ini
   console.log("downloadPDF dipanggil, type:", type);
   console.log("jadwalMengajar:", jadwalMengajar.length, "items");
   console.log("jadwalPengawas:", jadwalPengawas.length, "items");
-  
-  if (type === 'mengajar' && jadwalMengajar.length === 0) {
-    alert("Belum ada data jadwal mengajar untuk didownload.\nPastikan data sudah ditambahkan dan tersimpan.");
+
+  // Ambil data dengan filter + sorting
+  var dataMengajar = getFilteredData(jadwalMengajar);
+  var dataPengawas = getFilteredData(jadwalPengawas);
+
+  if (type === 'mengajar' && dataMengajar.length === 0) {
+    alert("Tidak ada data jadwal mengajar yang sesuai filter.\nCoba ubah atau reset filter.");
     return;
   }
-  
-  if (type === 'pengawas' && jadwalPengawas.length === 0) {
-    alert("Belum ada data jadwal pengawas untuk didownload.\nPastikan data sudah ditambahkan dan tersimpan.");
+  if (type === 'pengawas' && dataPengawas.length === 0) {
+    alert("Tidak ada data jadwal pengawas yang sesuai filter.\nCoba ubah atau reset filter.");
     return;
   }
-  
-  if (type === 'lengkap' && jadwalMengajar.length === 0 && jadwalPengawas.length === 0) {
-    alert("Belum ada data jadwal untuk didownload.");
+  if (type === 'lengkap' && dataMengajar.length === 0 && dataPengawas.length === 0) {
+    alert("Tidak ada data jadwal yang sesuai filter.\nCoba ubah atau reset filter.");
     return;
   }
-  
-  var content = buildPdfContent(type);
-  
-  // Create temporary element - FIXED: pakai posisi visible agar html2pdf bisa render dengan benar
-  var tempDiv = document.createElement('div');
-  tempDiv.innerHTML = content;
-  tempDiv.style.position = 'fixed';
-  tempDiv.style.top = '0';
-  tempDiv.style.left = '0';
-  tempDiv.style.width = '210mm';
-  tempDiv.style.backgroundColor = '#ffffff';
-  tempDiv.style.zIndex = '-9999';
-  tempDiv.style.opacity = '0';
-  document.body.appendChild(tempDiv);
-  
-  var filename = 'jadwal-';
-  if (type === 'mengajar') filename += 'mengajar';
-  else if (type === 'pengawas') filename += 'pengawas';
-  else filename += 'lengkap';
-  filename += '-' + new Date().toISOString().split('T')[0] + '.pdf';
-  
-  var opt = {
-    margin: 10,
-    filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { 
-      scale: 2,
-      useCORS: true,
-      logging: false,
-      allowTaint: true
-    },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-  
-  html2pdf().from(tempDiv).set(opt).save().then(function() {
-    document.body.removeChild(tempDiv);
+
+  showFilterInfo();
+
+  try {
+    var instansi = document.getElementById("pdfInstansi").value || "INSTANSI PENDIDIKAN";
+    var titlePdf = document.getElementById("pdfTitle").value || "JADWAL KEGIATAN";
+    var subtitle = document.getElementById("pdfSubtitle").value || "";
+
+    // Tambahkan keterangan filter ke subtitle PDF
+    var hari = document.getElementById("filterHari").value;
+    var jamMulai = document.getElementById("filterJamMulai").value;
+    var jamSelesai = document.getElementById("filterJamSelesai").value;
+    var filterKet = [];
+    if (hari) filterKet.push("Hari: " + hari);
+    if (jamMulai) filterKet.push("Jam Mulai ≥ " + jamMulai);
+    if (jamSelesai) filterKet.push("Jam Selesai ≤ " + jamSelesai);
+    var filterStr = filterKet.length > 0 ? "Filter: " + filterKet.join(" | ") : "";
+
+    var { jsPDF } = window.jspdf;
+    // LANDSCAPE untuk tabel yang lebar
+    var doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+    var pageW = doc.internal.pageSize.getWidth();   // 297mm landscape
+    var pageH = doc.internal.pageSize.getHeight();  // 210mm landscape
+    var margin = 14;
+    var y = margin;
+
+    // ===== LOGO =====
+    if (logoData) {
+      try {
+        var imgFormat = logoData.indexOf('data:image/png') === 0 ? 'PNG' : 'JPEG';
+        doc.addImage(logoData, imgFormat, pageW/2 - 15, y, 30, 20);
+        y += 23;
+      } catch(e) { console.warn("Logo gagal:", e); }
+    }
+
+    // ===== HEADER =====
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text(instansi.toUpperCase(), pageW / 2, y, { align: 'center' });
+    y += 8;
+
+    doc.setFontSize(13);
+    doc.text(titlePdf.toUpperCase(), pageW / 2, y, { align: 'center' });
+    y += 6;
+
+    if (subtitle) {
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.text(subtitle, pageW / 2, y, { align: 'center' });
+      y += 5;
+    }
+
+    if (filterStr) {
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'italic');
+      doc.setTextColor(100, 100, 200);
+      doc.text(filterStr, pageW / 2, y, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+      y += 5;
+    }
+
+    // Garis bawah header
+    doc.setLineWidth(0.6);
+    doc.line(margin, y, pageW - margin, y);
+    y += 9;
+
+    // ===== JADWAL MENGAJAR =====
+    if (type === 'mengajar' || type === 'lengkap') {
+      doc.setFontSize(11);
+      doc.setFont(undefined, 'bold');
+      doc.setFillColor(102, 126, 234);
+      doc.setTextColor(255, 255, 255);
+      doc.rect(margin, y, pageW - margin*2, 8, 'F');
+      doc.text('JADWAL MENGAJAR GURU' + (filterKet.length ? '  (' + filterKet.join(' | ') + ')' : ''), margin + 3, y + 5.5);
+      doc.setTextColor(0, 0, 0);
+      y += 11;
+
+      var rowsMengajar = [];
+      var prevHari = null;
+      for (var i = 0; i < dataMengajar.length; i++) {
+        var jm = dataMengajar[i];
+        var hariCell = (jm.hari !== prevHari) ? jm.hari : '';
+        prevHari = jm.hari;
+        rowsMengajar.push([
+          i + 1,
+          hariCell,
+          jm.mulai + ' - ' + jm.selesai,
+          jm.guruNama + ' (' + jm.guruKode + ')',
+          jm.kelas,
+          jm.mapel || '-'
+        ]);
+      }
+
+      doc.autoTable({
+        startY: y,
+        head: [['No', 'Hari', 'Jam', 'Guru', 'Kelas', 'Mata Pelajaran']],
+        body: rowsMengajar,
+        margin: { left: margin, right: margin },
+        headStyles: {
+          fillColor: [102, 126, 234], textColor: 255, fontStyle: 'bold', fontSize: 9,
+          halign: 'center'
+        },
+        bodyStyles: { fontSize: 9 },
+        alternateRowStyles: { fillColor: [240, 242, 255] },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 28, fontStyle: 'bold' },
+          2: { cellWidth: 34, halign: 'center' },
+          3: { cellWidth: 75 },
+          4: { cellWidth: 30, halign: 'center' },
+          5: { cellWidth: 'auto' }
+        },
+        didDrawCell: function(data) {
+          // Garis tebal setiap pergantian hari
+          if (data.section === 'body' && data.column.index === 1 && data.cell.raw !== '') {
+            doc.setDrawColor(102, 126, 234);
+            doc.setLineWidth(0.4);
+            doc.line(data.cell.x, data.cell.y, data.cell.x + (doc.internal.pageSize.getWidth() - margin*2), data.cell.y);
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.1);
+          }
+        }
+      });
+      y = doc.lastAutoTable.finalY + 10;
+    }
+
+    // ===== JADWAL PENGAWAS =====
+    if (type === 'pengawas' || type === 'lengkap') {
+      if (y > pageH - 50) { doc.addPage(); y = margin; }
+
+      doc.setFontSize(11);
+      doc.setFont(undefined, 'bold');
+      doc.setFillColor(72, 187, 120);
+      doc.setTextColor(255, 255, 255);
+      doc.rect(margin, y, pageW - margin*2, 8, 'F');
+      doc.text('JADWAL PENGAWAS RUANG UJIAN' + (filterKet.length ? '  (' + filterKet.join(' | ') + ')' : ''), margin + 3, y + 5.5);
+      doc.setTextColor(0, 0, 0);
+      y += 11;
+
+      var rowsPengawas = [];
+      var prevHariP = null;
+      for (var k = 0; k < dataPengawas.length; k++) {
+        var p = dataPengawas[k];
+        var hariCellP = (p.hari !== prevHariP) ? p.hari : '';
+        prevHariP = p.hari;
+        rowsPengawas.push([
+          k + 1,
+          hariCellP,
+          p.mulai + ' - ' + p.selesai,
+          p.guruNama + ' (' + p.guruKode + ')',
+          p.ruang,
+          p.jenis || '-'
+        ]);
+      }
+
+      doc.autoTable({
+        startY: y,
+        head: [['No', 'Hari', 'Jam', 'Guru', 'Ruang', 'Jenis Ujian']],
+        body: rowsPengawas,
+        margin: { left: margin, right: margin },
+        headStyles: {
+          fillColor: [72, 187, 120], textColor: 255, fontStyle: 'bold', fontSize: 9,
+          halign: 'center'
+        },
+        bodyStyles: { fontSize: 9 },
+        alternateRowStyles: { fillColor: [240, 255, 244] },
+        columnStyles: {
+          0: { cellWidth: 10, halign: 'center' },
+          1: { cellWidth: 28, fontStyle: 'bold' },
+          2: { cellWidth: 34, halign: 'center' },
+          3: { cellWidth: 75 },
+          4: { cellWidth: 25, halign: 'center' },
+          5: { cellWidth: 'auto' }
+        },
+        didDrawCell: function(data) {
+          if (data.section === 'body' && data.column.index === 1 && data.cell.raw !== '') {
+            doc.setDrawColor(72, 187, 120);
+            doc.setLineWidth(0.4);
+            doc.line(data.cell.x, data.cell.y, data.cell.x + (doc.internal.pageSize.getWidth() - margin*2), data.cell.y);
+            doc.setDrawColor(0);
+            doc.setLineWidth(0.1);
+          }
+        }
+      });
+      y = doc.lastAutoTable.finalY + 10;
+    }
+
+    // ===== FOOTER SETIAP HALAMAN =====
+    var pageCount = doc.internal.getNumberOfPages();
+    for (var pg = 1; pg <= pageCount; pg++) {
+      doc.setPage(pg);
+      doc.setFontSize(8);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(150, 150, 150);
+      var footerY = pageH - 8;
+      doc.text('Created & Developed by : D.D Candra © 2025', margin, footerY);
+      doc.text(
+        'Dicetak: ' + new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+        pageW - margin, footerY, { align: 'right' }
+      );
+      doc.text('Hal ' + pg + ' / ' + pageCount, pageW / 2, footerY, { align: 'center' });
+    }
+
+    // ===== SAVE =====
+    var filename = 'jadwal-';
+    if (type === 'mengajar') filename += 'mengajar';
+    else if (type === 'pengawas') filename += 'pengawas';
+    else filename += 'lengkap';
+    if (hari) filename += '-' + hari;
+    filename += '-' + new Date().toISOString().split('T')[0] + '.pdf';
+
+    doc.save(filename);
     showAlert("alert-bentrok", "✅ PDF berhasil didownload: " + filename, "success");
-  }).catch(function(err) {
-    document.body.removeChild(tempDiv);
-    console.error("PDF error:", err);
-    alert("Gagal membuat PDF. Coba lagi atau gunakan browser lain.");
-  });
+
+  } catch(err) {
+    console.error("PDF generation error:", err);
+    alert("Gagal membuat PDF: " + err.message + "\n\nPastikan koneksi internet aktif untuk memuat library PDF.");
+  }
 }
 
 // ====== INITIALIZATION ======
