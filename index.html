@@ -10,6 +10,8 @@
 <!-- CDN jsPDF sebagai fallback -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<!-- SheetJS untuk Excel export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <style>
 * {
@@ -425,12 +427,26 @@ tbody tr:hover {
       </select>
     </div>
     <div>
+      <label>📆 Tanggal</label>
+      <input type="date" id="jpTanggal">
+    </div>
+    <div>
+      <label>📝 Mata Pelajaran</label>
+      <input type="text" id="jpMapel" placeholder="Contoh: MATEMATIKA, IPA...">
+    </div>
+  </div>
+  <div class="grid-3" style="margin-top: 10px;">
+    <div>
       <label>🕐 Jam Mulai</label>
       <input type="time" id="jpMulai">
     </div>
     <div>
       <label>🕑 Jam Selesai</label>
       <input type="time" id="jpSelesai">
+    </div>
+    <div>
+      <label>🔢 No. Urut Pengawas di Ruang</label>
+      <input type="number" id="jpNoUrut" placeholder="Nomor urut guru (1,2,3...)" min="1">
     </div>
   </div>
 
@@ -443,7 +459,7 @@ tbody tr:hover {
   <h3 style="font-size: 1rem; margin-top: 20px; margin-bottom: 8px;">Daftar Jadwal Pengawas</h3>
   <table id="tabelJadwalPengawas">
     <thead>
-      <tr><th>No</th><th>Guru</th><th>Ruang</th><th>Jenis Ujian</th><th>Hari</th><th>Jam</th><th>Aksi</th></tr>
+      <tr><th>No</th><th>Hari/Tanggal</th><th>Mata Pelajaran</th><th>Waktu</th><th>Ruang</th><th>No.Urut</th><th>Jenis Ujian</th><th>Guru</th><th>Aksi</th></tr>
     </thead>
     <tbody></tbody>
   </table>
@@ -532,10 +548,17 @@ tbody tr:hover {
     </div>
   </div>
 
-  <div class="btn-row" style="margin-top: 16px;">
-    <button type="button" class="btn btn-primary" onclick="downloadPDF('mengajar')">📥 Download Jadwal Mengajar (PDF)</button>
-    <button type="button" class="btn btn-success" onclick="downloadPDF('pengawas')">📥 Download Jadwal Pengawas (PDF)</button>
-    <button type="button" class="btn btn-warning" onclick="downloadPDF('lengkap')">📥 Download Laporan Lengkap (PDF)</button>
+  <div style="margin-top: 14px; font-size: 0.8rem; font-weight: 600; color: #718096; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px;">📄 Download PDF</div>
+  <div class="btn-row" style="margin-top: 0;">
+    <button type="button" class="btn btn-primary" onclick="downloadPDF('mengajar')">📥 Jadwal Mengajar (PDF)</button>
+    <button type="button" class="btn btn-success" onclick="downloadPDF('pengawas')">📥 Jadwal Pengawas (PDF)</button>
+    <button type="button" class="btn btn-warning" onclick="downloadPDF('lengkap')">📥 Laporan Lengkap (PDF)</button>
+  </div>
+  <div style="margin-top: 14px; font-size: 0.8rem; font-weight: 600; color: #718096; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px;">📊 Download Excel</div>
+  <div class="btn-row" style="margin-top: 0;">
+    <button type="button" class="btn btn-primary" onclick="downloadExcel('mengajar')" style="background:#1a7abf;">📊 Jadwal Mengajar (Excel)</button>
+    <button type="button" class="btn btn-success" onclick="downloadExcel('pengawas')" style="background:#1e7e4e;">📊 Jadwal Pengawas (Excel)</button>
+    <button type="button" class="btn btn-warning" onclick="downloadExcel('lengkap')" style="background:#b07800;">📊 Laporan Lengkap (Excel)</button>
   </div>
 
   <!-- Preview Area -->
@@ -1124,20 +1147,23 @@ function renderJadwalPengawas() {
   tbody.innerHTML = "";
   
   if (jadwalPengawas.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#718096;">Belum ada jadwal pengawas</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:#718096;">Belum ada jadwal pengawas</td></tr>';
     return;
   }
   
   for (var i = 0; i < jadwalPengawas.length; i++) {
     var p = jadwalPengawas[i];
     var tr = document.createElement("tr");
+    var tglStr = p.tanggal ? ' / ' + formatTanggal(p.tanggal) : '';
     tr.innerHTML =
       "<td>" + (i + 1) + "</td>" +
-      "<td>" + p.guruNama + " <small>(" + p.guruKode + ")</small></td>" +
-      "<td>" + p.ruang + "</td>" +
-      "<td>" + (p.jenis || "-") + "</td>" +
-      "<td>" + p.hari + "</td>" +
+      "<td>" + p.hari + tglStr + "</td>" +
+      "<td>" + (p.mapel || "-") + "</td>" +
       "<td>" + p.mulai + " - " + p.selesai + "</td>" +
+      "<td>" + p.ruang + "</td>" +
+      "<td style='text-align:center;'>" + (p.noUrut || "-") + "</td>" +
+      "<td>" + (p.jenis || "-") + "</td>" +
+      "<td>" + p.guruNama + " <small>(" + p.guruKode + ")</small></td>" +
       "<td>" +
       '<button class="btn btn-warning btn-icon" onclick="editJadwalPengawas(' + i + ')" title="Edit">✏️</button> ' +
       '<button class="btn btn-danger btn-icon" onclick="hapusJadwalPengawas(' + i + ')" title="Hapus">🗑️</button>' +
@@ -1146,15 +1172,34 @@ function renderJadwalPengawas() {
   }
 }
 
+function formatTanggal(tglStr) {
+  if (!tglStr) return '';
+  try {
+    var d = new Date(tglStr);
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch(e) { return tglStr; }
+}
+
+function formatTanggalShort(tglStr) {
+  if (!tglStr) return '';
+  try {
+    var d = new Date(tglStr);
+    return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch(e) { return tglStr; }
+}
+
 function tambahJadwalPengawas() {
   showAlert("alert-pengawas", "");
   
   var idxGuru = document.getElementById("jpGuru").value;
   var ruang = document.getElementById("jpRuang").value.trim();
   var jenis = document.getElementById("jpJenis").value.trim();
+  var mapel = document.getElementById("jpMapel").value.trim();
   var hari = document.getElementById("jpHari").value;
+  var tanggal = document.getElementById("jpTanggal").value;
   var mulai = document.getElementById("jpMulai").value;
   var selesai = document.getElementById("jpSelesai").value;
+  var noUrut = document.getElementById("jpNoUrut").value;
   
   if (idxGuru === "" || !ruang || !hari || !mulai || !selesai) {
     showAlert("alert-pengawas", "Guru, Ruang, Hari, dan Jam wajib diisi.", "error");
@@ -1206,9 +1251,12 @@ function tambahJadwalPengawas() {
     guruKode: guru.kode,
     ruang: ruang,
     jenis: jenis,
+    mapel: mapel,
     hari: hari,
+    tanggal: tanggal,
     mulai: mulai,
-    selesai: selesai
+    selesai: selesai,
+    noUrut: noUrut ? parseInt(noUrut) : null
   };
   
   if (editModePengawas) {
@@ -1246,9 +1294,12 @@ function editJadwalPengawas(index) {
   if (guruIdx >= 0) document.getElementById("jpGuru").value = guruIdx;
   document.getElementById("jpRuang").value = p.ruang;
   document.getElementById("jpJenis").value = p.jenis || "";
+  document.getElementById("jpMapel").value = p.mapel || "";
   document.getElementById("jpHari").value = p.hari;
+  document.getElementById("jpTanggal").value = p.tanggal || "";
   document.getElementById("jpMulai").value = p.mulai;
   document.getElementById("jpSelesai").value = p.selesai;
+  document.getElementById("jpNoUrut").value = p.noUrut || "";
   
   // Update button text
   var btnContainer = document.querySelector("#alert-pengawas").previousElementSibling;
@@ -1292,9 +1343,12 @@ function clearFormPengawas() {
   document.getElementById("jpGuru").value = "";
   document.getElementById("jpRuang").value = "";
   document.getElementById("jpJenis").value = "";
+  document.getElementById("jpMapel").value = "";
   document.getElementById("jpHari").value = "";
+  document.getElementById("jpTanggal").value = "";
   document.getElementById("jpMulai").value = "";
   document.getElementById("jpSelesai").value = "";
+  document.getElementById("jpNoUrut").value = "";
 }
 
 // ====== CEK BENTROK ======
@@ -1664,10 +1718,75 @@ function downloadPDF(type) {
       y = doc.lastAutoTable.finalY + 10;
     }
 
-    // ===== JADWAL PENGAWAS =====
+    // ===== JADWAL PENGAWAS (FORMAT PIVOT SEPERTI CONTOH) =====
     if (type === 'pengawas' || type === 'lengkap') {
       if (y > pageH - 50) { doc.addPage(); y = margin; }
 
+      // Build pivot: group by (hari+tanggal+mapel+waktu) → array of (ruang, noUrut/guruKode)
+      var pivotMap = {};
+      var pivotOrder = [];
+      var maxRuang = 0;
+
+      for (var k = 0; k < dataPengawas.length; k++) {
+        var p = dataPengawas[k];
+        var tglStr = p.tanggal ? ' / ' + p.tanggal : '';
+        var key = (URUTAN_HARI[p.hari] || 99) + '||' + p.hari + tglStr + '||' + (p.mapel || p.jenis || '-') + '||' + p.mulai + '-' + p.selesai;
+        if (!pivotMap[key]) {
+          pivotMap[key] = { hari: p.hari, tanggal: p.tanggal || '', mapel: p.mapel || p.jenis || '-', waktu: p.mulai + ' – ' + p.selesai, ruangData: [] };
+          pivotOrder.push(key);
+        }
+        var ruangNum = parseInt(p.ruang) || p.ruang;
+        var noVal = p.noUrut || p.guruKode;
+        pivotMap[key].ruangData.push({ ruang: ruangNum, no: noVal });
+        if (ruangNum > maxRuang) maxRuang = ruangNum;
+      }
+
+      // Sort ruangData per row by ruang number
+      for (var ki = 0; ki < pivotOrder.length; ki++) {
+        pivotMap[pivotOrder[ki]].ruangData.sort(function(a,b){ return (parseInt(a.ruang)||0) - (parseInt(b.ruang)||0); });
+      }
+
+      if (maxRuang < 1) maxRuang = 9; // default minimal 9 ruang
+
+      // Build head row
+      var headCols = ['No', 'Hari / Tanggal', 'Mata Pelajaran', 'Waktu'];
+      for (var r = 1; r <= maxRuang; r++) headCols.push('' + r);
+
+      // Build body rows - merge rows with same hari+tanggal
+      var bodyRows = [];
+      var no = 1;
+      var prevHariKey = null;
+      var rowsPerHari = {}; // to track merge later
+
+      // Sort pivotOrder by hari key
+      pivotOrder.sort(function(a,b){ return a.split('||')[0] - b.split('||')[0]; });
+
+      for (var pi = 0; pi < pivotOrder.length; pi++) {
+        var row = pivotMap[pivotOrder[pi]];
+        var hariTgl = row.hari + (row.tanggal ? '\n' + formatTanggalShort(row.tanggal) : '');
+        var isNewHari = (hariTgl !== prevHariKey);
+
+        var rowArr = [
+          isNewHari ? no : '',
+          isNewHari ? hariTgl : '',
+          row.mapel,
+          row.waktu
+        ];
+
+        // Fill ruang columns
+        for (var r2 = 1; r2 <= maxRuang; r2++) {
+          var found = null;
+          for (var rd = 0; rd < row.ruangData.length; rd++) {
+            if (parseInt(row.ruangData[rd].ruang) === r2) { found = row.ruangData[rd].no; break; }
+          }
+          rowArr.push(found !== null ? '' + found : '');
+        }
+
+        bodyRows.push(rowArr);
+        if (isNewHari) { no++; prevHariKey = hariTgl; }
+      }
+
+      // Section title
       doc.setFontSize(11);
       doc.setFont(undefined, 'bold');
       doc.setFillColor(72, 187, 120);
@@ -1677,50 +1796,44 @@ function downloadPDF(type) {
       doc.setTextColor(0, 0, 0);
       y += 11;
 
-      var rowsPengawas = [];
-      var prevHariP = null;
-      for (var k = 0; k < dataPengawas.length; k++) {
-        var p = dataPengawas[k];
-        var hariCellP = (p.hari !== prevHariP) ? p.hari : '';
-        prevHariP = p.hari;
-        rowsPengawas.push([
-          k + 1,
-          hariCellP,
-          p.mulai + ' - ' + p.selesai,
-          p.guruNama + ' (' + p.guruKode + ')',
-          p.ruang,
-          p.jenis || '-'
-        ]);
+      // Sub-header: RUANG spanning
+      var colWidthFixed = [8, 30, 36, 28];
+      var ruangColW = Math.max(10, Math.floor((pageW - margin*2 - colWidthFixed.reduce(function(a,b){return a+b;},0)) / maxRuang));
+
+      var allColStyles = {};
+      allColStyles[0] = { cellWidth: 8, halign: 'center' };
+      allColStyles[1] = { cellWidth: 30 };
+      allColStyles[2] = { cellWidth: 36 };
+      allColStyles[3] = { cellWidth: 28, halign: 'center' };
+      for (var cs = 0; cs < maxRuang; cs++) {
+        allColStyles[4 + cs] = { cellWidth: ruangColW, halign: 'center' };
       }
 
       doc.autoTable({
         startY: y,
-        head: [['No', 'Hari', 'Jam', 'Guru', 'Ruang', 'Jenis Ujian']],
-        body: rowsPengawas,
+        head: [
+          // Row 1: fixed headers + RUANG spanning label
+          [
+            { content: 'NO', rowSpan: 2, styles: { halign: 'center', valign: 'middle', fillColor: [72, 187, 120], textColor: 255, fontStyle: 'bold' } },
+            { content: 'HARI / TANGGAL', rowSpan: 2, styles: { halign: 'center', valign: 'middle', fillColor: [72, 187, 120], textColor: 255, fontStyle: 'bold' } },
+            { content: 'MATA PELAJARAN', rowSpan: 2, styles: { halign: 'center', valign: 'middle', fillColor: [72, 187, 120], textColor: 255, fontStyle: 'bold' } },
+            { content: 'WAKTU', rowSpan: 2, styles: { halign: 'center', valign: 'middle', fillColor: [72, 187, 120], textColor: 255, fontStyle: 'bold' } },
+            { content: 'RUANG', colSpan: maxRuang, styles: { halign: 'center', fillColor: [72, 187, 120], textColor: 255, fontStyle: 'bold' } }
+          ],
+          // Row 2: ruang numbers
+          (function() {
+            var r2arr = [];
+            for (var rn = 1; rn <= maxRuang; rn++) r2arr.push({ content: '' + rn, styles: { halign: 'center', fillColor: [144, 238, 144], textColor: 0, fontStyle: 'bold', fontSize: 8 } });
+            return r2arr;
+          })()
+        ],
+        body: bodyRows,
         margin: { left: margin, right: margin },
-        headStyles: {
-          fillColor: [72, 187, 120], textColor: 255, fontStyle: 'bold', fontSize: 9,
-          halign: 'center'
-        },
-        bodyStyles: { fontSize: 9 },
+        headStyles: { fontSize: 8, fontStyle: 'bold' },
+        bodyStyles: { fontSize: 8 },
         alternateRowStyles: { fillColor: [240, 255, 244] },
-        columnStyles: {
-          0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 28, fontStyle: 'bold' },
-          2: { cellWidth: 34, halign: 'center' },
-          3: { cellWidth: 75 },
-          4: { cellWidth: 25, halign: 'center' },
-          5: { cellWidth: 'auto' }
-        },
-        didDrawCell: function(data) {
-          if (data.section === 'body' && data.column.index === 1 && data.cell.raw !== '') {
-            doc.setDrawColor(72, 187, 120);
-            doc.setLineWidth(0.4);
-            doc.line(data.cell.x, data.cell.y, data.cell.x + (doc.internal.pageSize.getWidth() - margin*2), data.cell.y);
-            doc.setDrawColor(0);
-            doc.setLineWidth(0.1);
-          }
-        }
+        columnStyles: allColStyles,
+        theme: 'grid'
       });
       y = doc.lastAutoTable.finalY + 10;
     }
@@ -1756,6 +1869,193 @@ function downloadPDF(type) {
     console.error("PDF generation error:", err);
     alert("Gagal membuat PDF: " + err.message + "\n\nPastikan koneksi internet aktif untuk memuat library PDF.");
   }
+}
+
+// ====== EXCEL EXPORT ======
+function downloadExcel(type) {
+  if (type === 'mengajar' && jadwalMengajar.length === 0) {
+    alert("Belum ada data jadwal mengajar."); return;
+  }
+  if (type === 'pengawas' && jadwalPengawas.length === 0) {
+    alert("Belum ada data jadwal pengawas."); return;
+  }
+  if (type === 'lengkap' && jadwalMengajar.length === 0 && jadwalPengawas.length === 0) {
+    alert("Belum ada data jadwal."); return;
+  }
+
+  var instansi = document.getElementById("pdfInstansi").value || "INSTANSI PENDIDIKAN";
+  var titlePdf = document.getElementById("pdfTitle").value || "JADWAL KEGIATAN";
+  var subtitle = document.getElementById("pdfSubtitle").value || "";
+
+  var dataMengajar = getFilteredData(jadwalMengajar);
+  var dataPengawas = getFilteredData(jadwalPengawas);
+
+  var wb = XLSX.utils.book_new();
+
+  // ============ SHEET PENGAWAS (format pivot seperti contoh) ============
+  if (type === 'pengawas' || type === 'lengkap') {
+    // Build pivot data
+    var pivotMap = {};
+    var pivotOrder = [];
+    var maxRuang = 0;
+
+    for (var k = 0; k < dataPengawas.length; k++) {
+      var p = dataPengawas[k];
+      var tglStr = p.tanggal ? ' / ' + formatTanggalShort(p.tanggal) : '';
+      var key = (URUTAN_HARI[p.hari] || 99) + '||' + p.hari + tglStr + '||' + (p.mapel || p.jenis || '-') + '||' + p.mulai + '-' + p.selesai;
+      if (!pivotMap[key]) {
+        pivotMap[key] = {
+          hari: p.hari,
+          tanggal: p.tanggal ? formatTanggalShort(p.tanggal) : '',
+          mapel: p.mapel || p.jenis || '-',
+          waktu: p.mulai + ' – ' + p.selesai,
+          ruangData: []
+        };
+        pivotOrder.push(key);
+      }
+      var ruangNum = parseInt(p.ruang) || p.ruang;
+      var noVal = p.noUrut ? p.noUrut : p.guruKode;
+      pivotMap[key].ruangData.push({ ruang: ruangNum, no: noVal });
+      if (typeof ruangNum === 'number' && ruangNum > maxRuang) maxRuang = ruangNum;
+    }
+
+    if (maxRuang < 1) maxRuang = 9;
+
+    // Sort pivot rows by hari order
+    pivotOrder.sort(function(a,b){ return parseInt(a.split('||')[0]) - parseInt(b.split('||')[0]); });
+    for (var ki = 0; ki < pivotOrder.length; ki++) {
+      pivotMap[pivotOrder[ki]].ruangData.sort(function(a,b){ return (parseInt(a.ruang)||0) - (parseInt(b.ruang)||0); });
+    }
+
+    // Build aoa (array of arrays) for SheetJS
+    var aoa = [];
+
+    // Row 1: instansi
+    aoa.push([instansi]);
+    // Row 2: title
+    aoa.push([titlePdf]);
+    // Row 3: subtitle
+    if (subtitle) aoa.push([subtitle]);
+    aoa.push([]); // blank
+
+    // Header row 1: RUANG spanning label
+    var h1 = ['NO', 'HARI', 'TANGGAL', 'MATA PELAJARAN', 'WAKTU'];
+    h1.push('RUANG'); // akan di-merge ke kanan
+    for (var rm = 1; rm < maxRuang; rm++) h1.push('');
+    aoa.push(h1);
+
+    // Header row 2: ruang numbers
+    var h2 = ['', '', '', '', ''];
+    for (var rn = 1; rn <= maxRuang; rn++) h2.push(rn);
+    aoa.push(h2);
+
+    var headerRowIdx = aoa.length; // 1-based will be this
+
+    // Data rows
+    var no = 1;
+    var prevHariTgl = null;
+    for (var pi = 0; pi < pivotOrder.length; pi++) {
+      var row = pivotMap[pivotOrder[pi]];
+      var hariTgl = row.hari + (row.tanggal ? '||' + row.tanggal : '');
+      var isNewHari = (hariTgl !== prevHariTgl);
+
+      var dataRow = [
+        isNewHari ? no : '',
+        isNewHari ? row.hari : '',
+        isNewHari ? row.tanggal : '',
+        row.mapel,
+        row.waktu
+      ];
+
+      for (var r2 = 1; r2 <= maxRuang; r2++) {
+        var found = null;
+        for (var rd = 0; rd < row.ruangData.length; rd++) {
+          if (parseInt(row.ruangData[rd].ruang) === r2) { found = row.ruangData[rd].no; break; }
+        }
+        dataRow.push(found !== null ? found : '');
+      }
+
+      aoa.push(dataRow);
+      if (isNewHari) { no++; prevHariTgl = hariTgl; }
+    }
+
+    var wsPengawas = XLSX.utils.aoa_to_sheet(aoa);
+
+    // Column widths
+    var wsCols = [
+      { wch: 5 },  // NO
+      { wch: 12 }, // HARI
+      { wch: 22 }, // TANGGAL
+      { wch: 22 }, // MATA PELAJARAN
+      { wch: 16 }, // WAKTU
+    ];
+    for (var rc = 0; rc < maxRuang; rc++) wsCols.push({ wch: 6 });
+    wsPengawas['!cols'] = wsCols;
+
+    // Merges: title rows + RUANG header
+    var mergesP = [];
+    var totalCols = 4 + maxRuang; // 0-indexed last col
+    mergesP.push({ s:{r:0,c:0}, e:{r:0,c:totalCols} }); // instansi
+    mergesP.push({ s:{r:1,c:0}, e:{r:1,c:totalCols} }); // title
+    if (subtitle) {
+      mergesP.push({ s:{r:2,c:0}, e:{r:2,c:totalCols} }); // subtitle
+    }
+    // RUANG label merge (header row 1, col 5 onwards)
+    var hdrRow1 = subtitle ? 4 : 3;
+    mergesP.push({ s:{r:hdrRow1,c:5}, e:{r:hdrRow1,c:4+maxRuang} });
+    // Merge header row1 NO/HARI/TANGGAL/MAPEL/WAKTU with row2
+    var hdrRow2 = hdrRow1 + 1;
+    for (var mc = 0; mc < 5; mc++) {
+      mergesP.push({ s:{r:hdrRow1,c:mc}, e:{r:hdrRow2,c:mc} });
+    }
+
+    wsPengawas['!merges'] = mergesP;
+
+    XLSX.utils.book_append_sheet(wb, wsPengawas, 'Jadwal Pengawas');
+  }
+
+  // ============ SHEET MENGAJAR (tabel biasa terurut per hari+jam) ============
+  if (type === 'mengajar' || type === 'lengkap') {
+    var aoaM = [];
+    aoaM.push([instansi]);
+    aoaM.push([titlePdf]);
+    if (subtitle) aoaM.push([subtitle]);
+    aoaM.push([]);
+    aoaM.push(['NO', 'HARI', 'TANGGAL', 'JAM', 'GURU', 'KELAS', 'MATA PELAJARAN']);
+
+    for (var mi = 0; mi < dataMengajar.length; mi++) {
+      var jm = dataMengajar[mi];
+      aoaM.push([
+        mi + 1,
+        jm.hari,
+        '',
+        jm.mulai + ' – ' + jm.selesai,
+        jm.guruNama + ' (' + jm.guruKode + ')',
+        jm.kelas,
+        jm.mapel || '-'
+      ]);
+    }
+
+    var wsMengajar = XLSX.utils.aoa_to_sheet(aoaM);
+    wsMengajar['!cols'] = [
+      {wch:5},{wch:12},{wch:18},{wch:16},{wch:30},{wch:14},{wch:22}
+    ];
+    var mergesM = [{s:{r:0,c:0},e:{r:0,c:6}},{s:{r:1,c:0},e:{r:1,c:6}}];
+    if (subtitle) mergesM.push({s:{r:2,c:0},e:{r:2,c:6}});
+    wsMengajar['!merges'] = mergesM;
+
+    XLSX.utils.book_append_sheet(wb, wsMengajar, 'Jadwal Mengajar');
+  }
+
+  // Save
+  var filename = 'jadwal-';
+  if (type === 'mengajar') filename += 'mengajar';
+  else if (type === 'pengawas') filename += 'pengawas';
+  else filename += 'lengkap';
+  filename += '-' + new Date().toISOString().split('T')[0] + '.xlsx';
+
+  XLSX.writeFile(wb, filename);
+  showAlert("alert-bentrok", "✅ Excel berhasil didownload: " + filename, "success");
 }
 
 // ====== INITIALIZATION ======
